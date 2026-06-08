@@ -256,7 +256,9 @@ Building AI systems that transform information into trustworthy knowledge.
 
 ---
 
-## Future Vision
+frontend: npm run dev
+backend: cd backend 
+python -m uvicorn main:app --reload
 
 TruthLens AI aims to become a comprehensive misinformation detection platform capable of verifying claims using evidence-based reasoning, trusted sources, and transparent AI explanations.
 
