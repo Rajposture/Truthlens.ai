@@ -1,29 +1,14 @@
 from fastapi import APIRouter
 
 from backend.models.claim import ClaimRequest
-from backend.llm.ollama import OllamaClient
+from backend.services.verification_service import VerificationService
 
 router = APIRouter()
 
 
 @router.post("/verify")
-def verify_claim(request: ClaimRequest):
+def verify(request: ClaimRequest):
 
-    prompt = f"""
-    Analyze the following news claim.
-
-    Claim:
-    {request.claim}
-
-    Return:
-
-    - Verdict
-    - Confidence
-    - Reasoning
-    """
-
-    result = OllamaClient.generate(prompt)
-
-    return {
-        "analysis": result
-    }
+    return VerificationService.analyze(
+        request.claim
+    )

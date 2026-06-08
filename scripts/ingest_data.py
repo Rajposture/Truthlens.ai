@@ -7,7 +7,9 @@ sys.path.insert(0, str(ROOT_DIR))
 from backend.rag.embedder import generate_embedding
 from backend.rag.vector_store import collection
 
-file_path = Path("data/raw/news.txt")
+ROOT_DIR = Path(__file__).resolve().parent.parent
+
+file_path = ROOT_DIR / "data" / "raw" / "news.txt"
 
 documents = file_path.read_text().split("\n")
 
