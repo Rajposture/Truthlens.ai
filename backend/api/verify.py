@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from backend.models.claim import ClaimRequest
-from backend.services.verification_service import VerificationService
+from models.claim import ClaimRequest
+from services.verification_service import VerificationService
 
 router = APIRouter()
 

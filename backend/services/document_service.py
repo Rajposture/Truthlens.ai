@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from backend.services.ingestion_service import (
+from services.ingestion_service import (
     IngestionService
 )
 

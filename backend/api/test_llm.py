@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from backend.llm.ollama import OllamaClient
+from llm.ollama import OllamaClient
 
 router = APIRouter()
 

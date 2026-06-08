@@ -1,4 +1,4 @@
-from backend.rag.vector_store import collection
+from rag.vector_store import collection
 
 
 class StatsService:

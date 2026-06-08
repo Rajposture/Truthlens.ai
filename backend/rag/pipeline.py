@@ -1,6 +1,6 @@
 
-from backend.llm.ollama import OllamaClient
-from backend.services.retrieval_service import RetrievalService
+from llm.ollama import OllamaClient
+from services.retrieval_service import RetrievalService
 
 def verify_claim(claim: str):
 

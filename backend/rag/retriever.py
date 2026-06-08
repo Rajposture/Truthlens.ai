@@ -1,5 +1,5 @@
-from backend.rag.embedder import generate_embedding
-from backend.rag.vector_store import collection
+from rag.embedder import generate_embedding
+from rag.vector_store import collection
 
 
 def retrieve(query: str, k: int = 3):

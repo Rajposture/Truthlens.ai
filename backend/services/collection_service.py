@@ -1,4 +1,4 @@
-from backend.rag.vector_store import (
+from rag.vector_store import (
     client,
     COLLECTION_NAME
 )

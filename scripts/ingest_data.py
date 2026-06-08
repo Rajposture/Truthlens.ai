@@ -4,8 +4,8 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
-from backend.rag.embedder import generate_embedding
-from backend.rag.vector_store import collection
+from rag.embedder import generate_embedding
+from rag.vector_store import collection
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 

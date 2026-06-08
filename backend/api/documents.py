@@ -4,21 +4,10 @@ from fastapi import APIRouter
 from fastapi import UploadFile
 from fastapi import File
 
-from backend.services.document_service import (
-    DocumentService
-)
-
-from backend.services.document_registry_service import (
-    DocumentRegistryService
-)
-
-from backend.services.collection_service import (
-    CollectionService
-)
-
-from backend.services.stats_service import (
-    StatsService
-)
+from services.document_service import DocumentService
+from services.document_registry_service import DocumentRegistryService
+from services.collection_service import CollectionService
+from services.stats_service import StatsService
 
 router = APIRouter()
 

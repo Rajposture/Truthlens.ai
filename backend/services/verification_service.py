@@ -1,8 +1,8 @@
 import re
 
-from backend.rag.pipeline import verify_claim
+from rag.pipeline import verify_claim
 
-from backend.services.verdict_parser import VerdictParser
+from services.verdict_parser import VerdictParser
 class VerificationService:
 
     @staticmethod

@@ -1,5 +1,5 @@
-from backend.rag.retriever import retrieve
-from backend.rag.reranker import Reranker
+from rag.retriever import retrieve
+from rag.reranker import Reranker
 
 
 class RetrievalService:

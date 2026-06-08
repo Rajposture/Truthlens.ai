@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from backend.rag.embedder import generate_embedding
-from backend.rag.vector_store import collection
-from backend.services.pdf_service import PDFService
+from rag.embedder import generate_embedding
+from rag.vector_store import collection
+from services.pdf_service import PDFService
 
 
 class IngestionService:
