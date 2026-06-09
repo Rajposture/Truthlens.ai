@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Upload, Search, Sparkles } from "lucide-react";
+import {
+  Upload,
+  Search,
+  Sparkles,
+  CheckCircle2,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import VerdictCard from "./VerdictCard";
@@ -12,71 +17,174 @@ interface VerificationResult {
   verdict: string;
   confidence: string | number;
   reasoning: string;
-  evidence: string[];
+  evidence: any[];
 }
 
 export default function VerifyBox() {
-  const [claim, setClaim] = useState<string>("");
-
+  const [claim, setClaim] = useState("");
   const [result, setResult] =
-    useState<VerificationResult | null>(null);
+    useState<VerificationResult | null>(
+      null
+    );
 
   const [loading, setLoading] =
-    useState<boolean>(false);
+    useState(false);
+
+  const [uploading, setUploading] =
+    useState(false);
 
   const [file, setFile] =
     useState<File | null>(null);
 
+  const [uploaded, setUploaded] =
+    useState(false);
+
   async function uploadPdf() {
     if (!file) return;
 
-    const formData = new FormData();
+    try {
+      setUploading(true);
 
-    formData.append("file", file);
+      const formData = new FormData();
 
-    await api.post(
-      "/documents/upload",
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    );
+      formData.append(
+        "file",
+        file
+      );
+
+      const response =
+        await api.post(
+          "/documents/upload",
+          formData,
+          {
+            headers: {
+              "Content-Type":
+                "multipart/form-data",
+            },
+          }
+        );
+
+      console.log(
+        "UPLOAD RESPONSE",
+        response.data
+      );
+
+      setUploaded(true);
+    } catch (error) {
+      console.error(
+        "Upload failed",
+        error
+      );
+    } finally {
+      setUploading(false);
+    }
   }
 
-  async function verifyClaim() {
-    if (!claim.trim()) return;
+ async function verifyClaim() {
+  if (!claim.trim()) return;
 
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      if (file) {
-        await uploadPdf();
-      }
-
-      const response = await api.post(
+    const response =
+      await api.post(
         "/verify",
         {
           claim,
         }
       );
 
-      setResult(response.data);
+    console.log(
+      "VERIFY RESPONSE:",
+      response.data
+    );
 
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
+    setResult(
+      response.data
+    );
+
+    try {
+
+      const history =
+        JSON.parse(
+          localStorage.getItem(
+            "truthlens-history"
+          ) || "[]"
+        );
+
+      const historyItem = {
+        claim:
+          response.data.claim ??
+          claim,
+
+        verdict:
+          response.data.verdict ??
+          "Unknown",
+
+        confidence:
+          response.data.confidence ??
+          "Unknown",
+
+        reasoning:
+          response.data.reasoning ??
+          "",
+
+        createdAt:
+          new Date().toISOString(),
+      };
+
+      history.unshift(
+        historyItem
+      );
+
+      localStorage.setItem(
+        "truthlens-history",
+        JSON.stringify(
+          history
+        )
+      );
+
+      console.log(
+        "History Saved:",
+        history
+      );
+
+    } catch (storageError) {
+
+      console.error(
+        "LocalStorage Error:",
+        storageError
+      );
+
     }
+
+  } catch (error) {
+
+    console.error(
+      "Verification failed",
+      error
+    );
+
+  } finally {
+
+    setLoading(false);
+
   }
+}
+  
 
   return (
     <div className="w-full max-w-5xl mx-auto">
 
       <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{
+          opacity: 0,
+          y: 15,
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+        }}
         className="
           overflow-hidden
           rounded-[32px]
@@ -87,11 +195,12 @@ export default function VerifyBox() {
           shadow-2xl
         "
       >
-
         <textarea
           value={claim}
           onChange={(e) =>
-            setClaim(e.target.value)
+            setClaim(
+              e.target.value
+            )
           }
           placeholder="Paste a claim, article, report, or URL to verify..."
           className="
@@ -111,58 +220,125 @@ export default function VerifyBox() {
           <div className="px-6 pb-4">
             <div
               className="
+                flex
+                items-center
+                justify-between
                 rounded-xl
                 border
                 border-zinc-800
                 bg-zinc-900/50
                 p-3
-                text-sm
-                text-zinc-400
               "
             >
-              📄 {file.name}
+              <span
+                className="
+                  text-sm
+                  text-zinc-400
+                "
+              >
+                📄 {file.name}
+              </span>
+
+              {uploaded && (
+                <span
+                  className="
+                    flex
+                    items-center
+                    gap-1
+                    text-xs
+                    text-green-500
+                  "
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Indexed
+                </span>
+              )}
             </div>
           </div>
         )}
 
-        <div className="border-t border-zinc-800 px-5 py-4">
+        <div
+          className="
+            border-t
+            border-zinc-800
+            px-5
+            py-4
+          "
+        >
+          <div
+            className="
+              flex
+              items-center
+              justify-between
+            "
+          >
+            <div className="flex gap-2">
 
-          <div className="flex items-center justify-between">
+              <label>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  hidden
+                  onChange={(
+                    e
+                  ) => {
+                    const selected =
+                      e.target
+                        .files?.[0];
 
-            <label>
+                    if (
+                      selected
+                    ) {
+                      setFile(
+                        selected
+                      );
+                      setUploaded(
+                        false
+                      );
+                    }
+                  }}
+                />
 
-              <input
-                type="file"
-                accept=".pdf"
-                hidden
-                onChange={(e) => {
-                  const selected =
-                    e.target.files?.[0];
+                <Button
+                  variant="outline"
+                  className="border-zinc-700"
+                  asChild
+                >
+                  <span>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Select PDF
+                  </span>
+                </Button>
+              </label>
 
-                  if (selected) {
-                    setFile(selected);
+              {file && (
+                <Button
+                  variant="outline"
+                  onClick={
+                    uploadPdf
                   }
-                }}
-              />
+                  disabled={
+                    uploading ||
+                    uploaded
+                  }
+                >
+                  {uploading
+                    ? "Uploading..."
+                    : uploaded
+                    ? "Indexed"
+                    : "Upload"}
+                </Button>
+              )}
 
-              <Button
-                variant="outline"
-                className="border-zinc-700"
-                asChild
-              >
-                <span>
-                  <Upload className="mr-2 h-4 w-4" />
-                  {file
-                    ? file.name
-                    : "Upload PDF"}
-                </span>
-              </Button>
-
-            </label>
+            </div>
 
             <Button
-              onClick={verifyClaim}
-              disabled={loading}
+              onClick={
+                verifyClaim
+              }
+              disabled={
+                loading
+              }
               className="min-w-[140px]"
             >
               {loading ? (
@@ -186,9 +362,7 @@ export default function VerifyBox() {
             </Button>
 
           </div>
-
         </div>
-
       </motion.div>
 
       {result && (
@@ -208,7 +382,6 @@ export default function VerifyBox() {
           />
         </motion.div>
       )}
-
     </div>
   );
 }

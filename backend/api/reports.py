@@ -1,19 +1,23 @@
 from fastapi import APIRouter
 
+from services.report_service import (
+    ReportService
+)
+
 router = APIRouter()
 
 
 @router.get("/reports")
 def get_reports():
-    return {
-        "status": "success",
-        "reports": []
-    }
+
+    return ReportService.get_reports()
 
 
-@router.get("/reports/{report_id}")
-def get_report(report_id: str):
-    return {
-        "status": "success",
-        "report_id": report_id
-    }
+@router.post("/reports")
+def save_report(
+    report: dict
+):
+
+    return ReportService.save_report(
+        report
+    )

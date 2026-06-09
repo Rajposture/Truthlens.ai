@@ -8,53 +8,6 @@ from services.pdf_service import PDFService
 class IngestionService:
 
     @staticmethod
-    def ingest_txt(file_path: str):
-
-        path = Path(file_path)
-
-        if not path.exists():
-            raise FileNotFoundError(
-                f"File not found: {file_path}"
-            )
-
-        content = path.read_text(
-            encoding="utf-8"
-        )
-
-        documents = [
-            doc.strip()
-            for doc in content.split("\n")
-            if doc.strip()
-        ]
-
-        ingested = 0
-
-        for idx, doc in enumerate(documents):
-
-            collection.add(
-                ids=[f"{path.stem}_{idx}"],
-                documents=[doc],
-                embeddings=[
-                    generate_embedding(doc)
-                ],
-                metadatas=[
-                    {
-                        "source": path.name,
-                        "type": "txt"
-                    }
-                ]
-            )
-
-            ingested += 1
-
-        return {
-            "status": "success",
-            "file": path.name,
-            "type": "txt",
-            "documents_ingested": ingested
-        }
-
-    @staticmethod
     def ingest_pdf(file_path: str):
 
         path = Path(file_path)
@@ -68,35 +21,111 @@ class IngestionService:
             str(path)
         )
 
+        # Split PDF into larger chunks
+        chunk_size = 1000
+
         documents = [
-            doc.strip()
-            for doc in content.split("\n")
-            if doc.strip()
+            content[i:i + chunk_size]
+            for i in range(
+                0,
+                len(content),
+                chunk_size
+            )
         ]
 
-        ingested = 0
+        ids = []
+        embeddings = []
+        metadatas = []
 
         for idx, doc in enumerate(documents):
 
-            collection.add(
-                ids=[f"{path.stem}_pdf_{idx}"],
-                documents=[doc],
-                embeddings=[
-                    generate_embedding(doc)
-                ],
-                metadatas=[
-                    {
-                        "source": path.name,
-                        "type": "pdf"
-                    }
-                ]
+            ids.append(
+                f"{path.stem}_pdf_{idx}"
             )
 
-            ingested += 1
+            embeddings.append(
+                generate_embedding(doc)
+            )
+
+            metadatas.append(
+                {
+                    "source": path.name,
+                    "type": "pdf",
+                    "chunk": idx
+                }
+            )
+
+        collection.add(
+            ids=ids,
+            documents=documents,
+            embeddings=embeddings,
+            metadatas=metadatas
+        )
 
         return {
             "status": "success",
             "file": path.name,
             "type": "pdf",
-            "documents_ingested": ingested
+            "chunks_ingested": len(documents)
+        }
+
+    @staticmethod
+    def ingest_txt(file_path: str):
+
+        path = Path(file_path)
+
+        if not path.exists():
+            raise FileNotFoundError(
+                f"File not found: {file_path}"
+            )
+
+        content = path.read_text(
+            encoding="utf-8"
+        )
+
+        chunk_size = 1000
+
+        documents = [
+            content[i:i + chunk_size]
+            for i in range(
+                0,
+                len(content),
+                chunk_size
+            )
+        ]
+
+        ids = []
+        embeddings = []
+        metadatas = []
+
+        for idx, doc in enumerate(documents):
+
+            ids.append(
+                f"{path.stem}_txt_{idx}"
+            )
+
+            embeddings.append(
+                generate_embedding(doc)
+            )
+
+            metadatas.append(
+                {
+                    "source": path.name,
+                    "type": "txt",
+                    "chunk": idx
+                }
+            )
+
+        collection.add(
+            ids=ids,
+            documents=documents,
+            embeddings=embeddings,
+            metadatas=metadatas
+        )
+
+        return {
+            "status": "success",
+            "file": path.name,
+            "type": "txt",
+            "chunks_ingested": len(documents)
         }

@@ -1,12 +1,19 @@
 from pathlib import Path
 
-from fastapi import APIRouter
-from fastapi import UploadFile
-from fastapi import File
+from fastapi import (
+    APIRouter,
+    UploadFile,
+    File,
+    BackgroundTasks
+)
 
 from services.document_service import DocumentService
-from services.document_registry_service import DocumentRegistryService
-from services.collection_service import CollectionService
+from services.document_registry_service import (
+    DocumentRegistryService
+)
+from services.collection_service import (
+    CollectionService
+)
 from services.stats_service import StatsService
 
 router = APIRouter()
@@ -27,17 +34,22 @@ def ingest_documents():
 
 @router.post("/documents/upload")
 async def upload_document(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...)
 ):
 
-    upload_dir = Path("data/raw/uploads")
+    upload_dir = Path(
+        "data/raw/uploads"
+    )
 
     upload_dir.mkdir(
         parents=True,
         exist_ok=True
     )
 
-    file_path = upload_dir / file.filename
+    file_path = (
+        upload_dir / file.filename
+    )
 
     contents = await file.read()
 
@@ -47,15 +59,15 @@ async def upload_document(
     ) as f:
         f.write(contents)
 
-    result = (
-        DocumentService.ingest_document(
-            str(file_path)
-        )
+    background_tasks.add_task(
+        DocumentService.ingest_document,
+        str(file_path)
     )
 
     return {
-        "message": "Uploaded Successfully",
-        "result": result
+        "status": "success",
+        "message": "File uploaded. Processing started.",
+        "file": file.filename
     }
 
 
@@ -78,3 +90,11 @@ def document_stats():
 def clear_documents():
 
     return CollectionService.clear_collection()
+
+
+@router.get("/documents/test")
+def test_documents():
+
+    return {
+        "status": "documents router working"
+    }
