@@ -1,246 +1,357 @@
 import Link from "next/link";
+import Image from "next/image";
+
+import { Button } from "@/components/ui/button";
+
+import { UserButton } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
+
 import {
   ArrowRight,
   ShieldCheck,
   Database,
   Brain,
+  Activity,
+  FileSearch,
+  Lock,
 } from "lucide-react";
 
-export default function Home() {
+export default async function HomePage() {
+  const { userId } = await auth();
+
+  const features = [
+    {
+      icon: ShieldCheck,
+      title: "Fact Verification",
+      description:
+        "Validate claims using retrieval-augmented reasoning and evidence-backed analysis.",
+    },
+    {
+      icon: Database,
+      title: "Document Intelligence",
+      description:
+        "Search across PDFs, reports, research papers and private knowledge bases.",
+    },
+    {
+      icon: Brain,
+      title: "Local AI Models",
+      description:
+        "Powered by Ollama and ChromaDB for privacy-focused reasoning.",
+    },
+    {
+      icon: FileSearch,
+      title: "Evidence Retrieval",
+      description:
+        "Retrieve supporting evidence and source references automatically.",
+    },
+    {
+      icon: Lock,
+      title: "Private by Design",
+      description:
+        "Run locally and keep sensitive documents inside your infrastructure.",
+    },
+    {
+      icon: Activity,
+      title: "AI Monitoring",
+      description:
+        "Track verification history, reports and system activity.",
+    },
+  ];
+
   return (
-    <main className="min-h-screen bg-black text-white">
+    <main className="truthlens-shell min-h-screen text-white">
 
-      {/* Navbar */}
+      {/* Background Effects */}
 
-      <nav
-        className="
-          flex
-          items-center
-          justify-between
-          px-8
-          py-6
-          border-b
-          border-zinc-900
-        "
-      >
-        <h1 className="text-2xl font-bold">
-          TruthLens AI
-        </h1>
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
 
-        <Link
-          href="/auth"
-          className="
-            rounded-xl
-            border
-            border-zinc-700
-            px-5
-            py-2
-            hover:bg-zinc-900
-            transition
-          "
-        >
-          Sign In
-        </Link>
-      </nav>
-
-      {/* Hero */}
-
-      <section
-        className="
-          mx-auto
-          max-w-7xl
-          px-8
-          py-32
-          text-center
-        "
-      >
         <div
           className="
-            inline-block
+            absolute
+            left-1/2
+            top-0
+            h-[700px]
+            w-[700px]
+            -translate-x-1/2
             rounded-full
-            border
-            border-blue-500/20
-            bg-blue-500/10
-            px-4
-            py-2
-            text-sm
-            text-blue-400
+            bg-white/[0.03]
+            blur-[180px]
           "
-        >
-          AI-Powered Fact Verification
-        </div>
-
-        <h1
-          className="
-            mt-8
-            text-6xl
-            font-bold
-            leading-tight
-          "
-        >
-          Verify Claims,
-          <br />
-          Reports &
-          <span className="text-blue-500">
-            {" "}News Instantly
-          </span>
-        </h1>
-
-        <p
-          className="
-            mx-auto
-            mt-8
-            max-w-3xl
-            text-xl
-            text-zinc-400
-          "
-        >
-          TruthLens combines RAG,
-          ChromaDB, Neon PostgreSQL,
-          Clerk Authentication and Local LLMs
-          to detect misinformation and
-          validate information with evidence.
-        </p>
+        />
 
         <div
           className="
-            mt-12
+            absolute
+            bottom-0
+            right-0
+            h-[500px]
+            w-[500px]
+            rounded-full
+            bg-white/[0.02]
+            blur-[180px]
+          "
+        />
+
+      </div>
+
+      <div className="relative mx-auto max-w-7xl px-6">
+
+        {/* NAVBAR */}
+
+        <header
+          className="
+            sticky
+            top-6
+            z-50
+            mt-6
             flex
-            justify-center
-            gap-4
+            items-center
+            justify-between
+            rounded-3xl
+            border
+            border-white/10
+            bg-black/40
+            px-6
+            py-4
+            backdrop-blur-xl
           "
         >
+
           <Link
-            href="/auth"
+            href="/"
+            className="flex items-center gap-4"
+          >
+            <Image
+              src="/logo.png"
+              alt="TruthLens"
+              width={42}
+              height={42}
+            />
+
+            <span
+              className="
+                text-2xl
+                font-bold
+                tracking-wide
+              "
+            >
+              TruthLens
+            </span>
+          </Link>
+
+          <div className="flex items-center gap-3">
+
+            {userId ? (
+              <>
+                <Link href="/dashboard">
+                  <Button
+                    variant="outline"
+                    className="
+                      border-white/10
+                      bg-white/5
+                      backdrop-blur
+                    "
+                  >
+                    Dashboard
+                  </Button>
+                </Link>
+
+                <UserButton />
+              </>
+            ) : (
+              <>
+                <Link href="/auth/sign-in">
+                  <Button
+                    variant="outline"
+                    className="
+                      border-white/10
+                      bg-white/5
+                    "
+                  >
+                    Sign In
+                  </Button>
+                </Link>
+
+                <Link href="/auth/sign-up">
+                  <Button>
+                    Get Started
+                  </Button>
+                </Link>
+              </>
+            )}
+
+          </div>
+
+        </header>
+
+        {/* HERO */}
+
+        <section className="py-28">
+
+          <div
             className="
-              flex
+              inline-flex
               items-center
               gap-2
-              rounded-xl
-              bg-blue-600
-              px-8
-              py-4
-              font-semibold
-              hover:bg-blue-500
-              transition
-            "
-          >
-            Get Started
-            <ArrowRight size={18} />
-          </Link>
-
-          <Link
-            href="/dashboard"
-            className="
-              rounded-xl
+              rounded-full
               border
-              border-zinc-700
-              px-8
-              py-4
-              hover:bg-zinc-900
-              transition
+              border-white/10
+              bg-white/5
+              px-4
+              py-2
+              text-sm
+              text-zinc-400
             "
           >
-            Dashboard
-          </Link>
-        </div>
-      </section>
+            <Activity className="h-4 w-4" />
+            AI Fact Verification Platform
+          </div>
 
-      {/* Features */}
+          <h1
+            className="
+              mt-8
+              max-w-5xl
+              text-6xl
+              font-bold
+              leading-[0.95]
+              tracking-tight
+              md:text-7xl
+              xl:text-8xl
+            "
+          >
+            Verify Claims,
+            <br />
+            <span className="text-zinc-500">
+              Reports & News
+            </span>
+          </h1>
 
-      <section
-        className="
-          mx-auto
-          grid
-          max-w-7xl
-          gap-8
-          px-8
-          pb-24
-          md:grid-cols-3
-        "
-      >
-        <div
+          <p
+            className="
+              mt-8
+              max-w-2xl
+              text-lg
+              leading-relaxed
+              text-zinc-400
+            "
+          >
+            TruthLens combines Retrieval-Augmented Generation,
+            ChromaDB and local AI models to validate information
+            using evidence-based reasoning.
+          </p>
+
+          <div className="mt-10 flex flex-wrap gap-4">
+
+            <Link
+              href={
+                userId
+                  ? "/dashboard"
+                  : "/auth/sign-up"
+              }
+            >
+              <Button
+                size="lg"
+                className="gap-2"
+              >
+                Start Verifying
+                <ArrowRight size={16} />
+              </Button>
+            </Link>
+
+            <Link href="/verify">
+              <Button
+                size="lg"
+                variant="outline"
+                className="
+                  border-white/10
+                  bg-white/5
+                "
+              >
+                Try a Claim
+              </Button>
+            </Link>
+
+          </div>
+
+        </section>
+
+        {/* FEATURES */}
+
+        <section
           className="
-            rounded-3xl
-            border
-            border-zinc-800
-            bg-zinc-950
-            p-8
+            grid
+            gap-6
+            pb-20
+            md:grid-cols-2
+            xl:grid-cols-3
           "
         >
-          <ShieldCheck
-            className="
-              h-10
-              w-10
-              text-blue-500
-            "
-          />
 
-          <h3 className="mt-6 text-2xl font-semibold">
-            Fact Verification
-          </h3>
+          {features.map((feature) => {
+            const Icon = feature.icon;
 
-          <p className="mt-3 text-zinc-400">
-            Analyze claims using AI-powered
-            reasoning and evidence retrieval.
-          </p>
-        </div>
+            return (
+              <div
+                key={feature.title}
+                className="
+                  group
+                  rounded-3xl
+                  border
+                  border-white/10
+                  bg-white/[0.03]
+                  p-7
+                  backdrop-blur-xl
+                  transition-all
+                  duration-300
+                  hover:-translate-y-1
+                  hover:border-white/20
+                "
+              >
 
-        <div
-          className="
-            rounded-3xl
-            border
-            border-zinc-800
-            bg-zinc-950
-            p-8
-          "
-        >
-          <Database
-            className="
-              h-10
-              w-10
-              text-green-500
-            "
-          />
+                <div
+                  className="
+                    flex
+                    h-12
+                    w-12
+                    items-center
+                    justify-center
+                    rounded-2xl
+                    border
+                    border-white/10
+                    bg-white/[0.04]
+                  "
+                >
+                  <Icon className="h-5 w-5" />
+                </div>
 
-          <h3 className="mt-6 text-2xl font-semibold">
-            Vector Knowledge Base
-          </h3>
+                <h3
+                  className="
+                    mt-5
+                    text-lg
+                    font-semibold
+                  "
+                >
+                  {feature.title}
+                </h3>
 
-          <p className="mt-3 text-zinc-400">
-            Search across indexed PDFs,
-            reports and research documents.
-          </p>
-        </div>
+                <p
+                  className="
+                    mt-3
+                    text-sm
+                    leading-7
+                    text-zinc-400
+                  "
+                >
+                  {feature.description}
+                </p>
 
-        <div
-          className="
-            rounded-3xl
-            border
-            border-zinc-800
-            bg-zinc-950
-            p-8
-          "
-        >
-          <Brain
-            className="
-              h-10
-              w-10
-              text-purple-500
-            "
-          />
+              </div>
+            );
+          })}
 
-          <h3 className="mt-6 text-2xl font-semibold">
-            Local AI Models
-          </h3>
+        </section>
 
-          <p className="mt-3 text-zinc-400">
-            Powered by Ollama and RAG
-            pipelines for privacy-first
-            verification.
-          </p>
-        </div>
-      </section>
+      </div>
 
     </main>
   );
