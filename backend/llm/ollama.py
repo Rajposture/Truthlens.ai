@@ -6,11 +6,19 @@ from core.config import settings
 class OllamaClient:
 
     @staticmethod
-    def generate(prompt: str) -> str:
+    def generate(
+        prompt: str
+    ) -> str:
 
         response = ollama.chat(
             model=settings.OLLAMA_MODEL,
             messages=[
+                {
+                    "role": "system",
+                    "content":
+                    "You are a professional AI assistant. "
+                    "Always format code using markdown code blocks."
+                },
                 {
                     "role": "user",
                     "content": prompt
@@ -18,4 +26,6 @@ class OllamaClient:
             ]
         )
 
-        return response["message"]["content"]
+        return (
+            response["message"]["content"]
+        )

@@ -1,387 +1,378 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Upload,
-  Search,
-  Sparkles,
-  CheckCircle2,
-} from "lucide-react";
+import { Search, Sparkles, Brain } from "lucide-react";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
+
 import VerdictCard from "./VerdictCard";
+import FileUpload from "./FileUpload";
+
 import { api } from "@/lib/api";
 
 interface VerificationResult {
-  claim: string;
-  verdict: string;
-  confidence: string | number;
-  reasoning: string;
-  evidence: any[];
+claim: string;
+verdict: string;
+confidence: string | number;
+reasoning: string;
+evidence: any[];
 }
 
 export default function VerifyBox() {
-  const [claim, setClaim] = useState("");
-  const [result, setResult] =
-    useState<VerificationResult | null>(
-      null
-    );
+const [claim, setClaim] = useState("");
 
-  const [loading, setLoading] =
-    useState(false);
+const [result, setResult] =
+useState<VerificationResult | null>(
+null
+);
 
-  const [uploading, setUploading] =
-    useState(false);
+const [loading, setLoading] =
+useState(false);
 
-  const [file, setFile] =
-    useState<File | null>(null);
+const [uploading, setUploading] =
+useState(false);
 
-  const [uploaded, setUploaded] =
-    useState(false);
+const [file, setFile] =
+useState<File | null>(null);
 
-  async function uploadPdf() {
-    if (!file) return;
+const [uploaded, setUploaded] =
+useState(false);
 
-    try {
-      setUploading(true);
+async function uploadPdf() {
 
-      const formData = new FormData();
+if (!file) return;
 
-      formData.append(
-        "file",
-        file
-      );
+try {
 
-      const response =
-        await api.post(
-          "/documents/upload",
-          formData,
-          {
-            headers: {
-              "Content-Type":
-                "multipart/form-data",
-            },
-          }
-        );
+  setUploading(true);
 
-      console.log(
-        "UPLOAD RESPONSE",
-        response.data
-      );
+  const formData =
+    new FormData();
 
-      setUploaded(true);
-    } catch (error) {
-      console.error(
-        "Upload failed",
-        error
-      );
-    } finally {
-      setUploading(false);
+  formData.append(
+    "file",
+    file
+  );
+
+  await api.post(
+    "/documents/upload",
+    formData,
+    {
+      headers: {
+        "Content-Type":
+          "multipart/form-data",
+      },
     }
-  }
+  );
 
- async function verifyClaim() {
-  if (!claim.trim()) return;
+  setUploaded(true);
 
-  try {
-    setLoading(true);
+} catch (error) {
 
-    const response =
-      await api.post(
-        "/verify",
-        {
-          claim,
-        }
-      );
+  console.error(
+    "Upload failed",
+    error
+  );
 
-    console.log(
-      "VERIFY RESPONSE:",
-      response.data
-    );
+} finally {
 
-    setResult(
-      response.data
-    );
+  setUploading(false);
 
-    try {
-
-      const history =
-        JSON.parse(
-          localStorage.getItem(
-            "truthlens-history"
-          ) || "[]"
-        );
-
-      const historyItem = {
-        claim:
-          response.data.claim ??
-          claim,
-
-        verdict:
-          response.data.verdict ??
-          "Unknown",
-
-        confidence:
-          response.data.confidence ??
-          "Unknown",
-
-        reasoning:
-          response.data.reasoning ??
-          "",
-
-        createdAt:
-          new Date().toISOString(),
-      };
-
-      history.unshift(
-        historyItem
-      );
-
-      localStorage.setItem(
-        "truthlens-history",
-        JSON.stringify(
-          history
-        )
-      );
-
-      console.log(
-        "History Saved:",
-        history
-      );
-
-    } catch (storageError) {
-
-      console.error(
-        "LocalStorage Error:",
-        storageError
-      );
-
-    }
-
-  } catch (error) {
-
-    console.error(
-      "Verification failed",
-      error
-    );
-
-  } finally {
-
-    setLoading(false);
-
-  }
 }
-  
 
-  return (
-    <div className="w-full max-w-5xl mx-auto">
 
-      <motion.div
-        initial={{
-          opacity: 0,
-          y: 15,
-        }}
-        animate={{
-          opacity: 1,
-          y: 0,
-        }}
+}
+
+async function verifyClaim() {
+
+
+if (!claim.trim()) return;
+
+try {
+
+  setLoading(true);
+
+  const response =
+    await api.post(
+      "/verify",
+      {
+        claim,
+      }
+    );
+
+  setResult(
+    response.data
+  );
+
+  const history =
+    JSON.parse(
+      localStorage.getItem(
+        "truthlens-history"
+      ) || "[]"
+    );
+
+  history.unshift({
+    claim:
+      response.data.claim,
+
+    verdict:
+      response.data.verdict,
+
+    confidence:
+      response.data.confidence,
+
+    reasoning:
+      response.data.reasoning,
+
+    createdAt:
+      new Date().toISOString(),
+  });
+
+  localStorage.setItem(
+    "truthlens-history",
+    JSON.stringify(history)
+  );
+
+} catch (error) {
+
+  console.error(
+    "Verification failed",
+    error
+  );
+
+} finally {
+
+  setLoading(false);
+
+}
+
+
+}
+
+const quickPrompts = [
+"Is climate change caused by humans?",
+"Did Chandrayaan-3 land on the moon?",
+"Can AI replace software engineers?",
+"Analyze this research paper",
+];
+
+return ( <div className="mx-auto w-full max-w-6xl">
+
+
+  <motion.div
+    initial={{
+      opacity: 0,
+      y: 20,
+    }}
+    animate={{
+      opacity: 1,
+      y: 0,
+    }}
+    className="
+      overflow-hidden
+      rounded-[32px]
+      border
+      border-zinc-800
+      bg-zinc-950
+      shadow-2xl
+    "
+  >
+
+    {/* Header */}
+
+    <div
+      className="
+        border-b
+        border-zinc-800
+        p-6
+      "
+    >
+
+      <div className="flex items-center gap-3">
+
+        <Brain className="h-6 w-6 text-blue-500" />
+
+        <div>
+
+          <h2 className="text-xl font-semibold">
+            Verification Workspace
+          </h2>
+
+          <p className="text-sm text-zinc-500">
+            Verify claims, reports,
+            research papers and news.
+          </p>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    {/* Claim Input */}
+
+    <div className="p-6">
+
+      <textarea
+        value={claim}
+        onChange={(e) =>
+          setClaim(
+            e.target.value
+          )
+        }
+        placeholder="Paste a claim, article, report, URL or statement to verify..."
         className="
-          overflow-hidden
-          rounded-[32px]
+          h-[260px]
+          w-full
+          resize-none
+          rounded-3xl
           border
           border-zinc-800
-          bg-zinc-950/90
-          backdrop-blur-xl
-          shadow-2xl
+          bg-black
+          p-6
+          text-zinc-100
+          placeholder:text-zinc-500
+          outline-none
+          transition
+          focus:border-blue-500
         "
-      >
-        <textarea
-          value={claim}
-          onChange={(e) =>
-            setClaim(
-              e.target.value
-            )
-          }
-          placeholder="Paste a claim, article, report, or URL to verify..."
-          className="
-            min-h-[220px]
-            w-full
-            resize-none
-            bg-transparent
-            px-6
-            py-6
-            text-zinc-100
-            placeholder:text-zinc-500
-            outline-none
-          "
-        />
+      />
 
-        {file && (
-          <div className="px-6 pb-4">
-            <div
+    </div>
+
+    {/* Quick Prompts */}
+
+    <div className="px-6">
+
+      <p className="mb-3 text-sm text-zinc-500">
+        Quick Examples
+      </p>
+
+      <div className="flex flex-wrap gap-3">
+
+        {quickPrompts.map(
+          (prompt) => (
+
+            <button
+              key={prompt}
+              onClick={() =>
+                setClaim(prompt)
+              }
               className="
-                flex
-                items-center
-                justify-between
-                rounded-xl
+                rounded-full
                 border
                 border-zinc-800
-                bg-zinc-900/50
-                p-3
+                px-4
+                py-2
+                text-sm
+                text-zinc-400
+                transition
+                hover:border-blue-500
+                hover:text-white
               "
             >
-              <span
-                className="
-                  text-sm
-                  text-zinc-400
-                "
-              >
-                📄 {file.name}
-              </span>
+              {prompt}
+            </button>
 
-              {uploaded && (
-                <span
-                  className="
-                    flex
-                    items-center
-                    gap-1
-                    text-xs
-                    text-green-500
-                  "
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  Indexed
-                </span>
-              )}
-            </div>
-          </div>
+          )
         )}
 
-        <div
+      </div>
+
+    </div>
+
+    {/* Upload */}
+
+    <div className="p-6">
+
+      <FileUpload
+        file={file}
+        uploaded={uploaded}
+        uploading={uploading}
+        onFileSelect={(file) => {
+          setFile(file);
+          setUploaded(false);
+        }}
+        onUpload={uploadPdf}
+      />
+
+    </div>
+
+    {/* Action Bar */}
+
+    <div
+      className="
+        border-t
+        border-zinc-800
+        bg-zinc-950
+        p-6
+      "
+    >
+
+      <div className="flex justify-end">
+
+        <button
+          onClick={verifyClaim}
+          disabled={loading}
           className="
-            border-t
-            border-zinc-800
-            px-5
+            flex
+            items-center
+            gap-3
+            rounded-2xl
+            bg-blue-600
+            px-8
             py-4
+            font-medium
+            text-white
+            transition
+            hover:bg-blue-500
+            disabled:opacity-50
           "
         >
-          <div
-            className="
-              flex
-              items-center
-              justify-between
-            "
-          >
-            <div className="flex gap-2">
 
-              <label>
-                <input
-                  type="file"
-                  accept=".pdf"
-                  hidden
-                  onChange={(
-                    e
-                  ) => {
-                    const selected =
-                      e.target
-                        .files?.[0];
+          {loading ? (
+            <>
+              <Sparkles className="h-5 w-5 animate-spin" />
+              Verifying...
+            </>
+          ) : (
+            <>
+              <Search className="h-5 w-5" />
+              Verify With AI
+            </>
+          )}
 
-                    if (
-                      selected
-                    ) {
-                      setFile(
-                        selected
-                      );
-                      setUploaded(
-                        false
-                      );
-                    }
-                  }}
-                />
+        </button>
 
-                <Button
-                  variant="outline"
-                  className="border-zinc-700"
-                  asChild
-                >
-                  <span>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Select PDF
-                  </span>
-                </Button>
-              </label>
+      </div>
 
-              {file && (
-                <Button
-                  variant="outline"
-                  onClick={
-                    uploadPdf
-                  }
-                  disabled={
-                    uploading ||
-                    uploaded
-                  }
-                >
-                  {uploading
-                    ? "Uploading..."
-                    : uploaded
-                    ? "Indexed"
-                    : "Upload"}
-                </Button>
-              )}
-
-            </div>
-
-            <Button
-              onClick={
-                verifyClaim
-              }
-              disabled={
-                loading
-              }
-              className="min-w-[140px]"
-            >
-              {loading ? (
-                <>
-                  <Sparkles
-                    className="
-                      mr-2
-                      h-4
-                      w-4
-                      animate-pulse
-                    "
-                  />
-                  Verifying...
-                </>
-              ) : (
-                <>
-                  <Search className="mr-2 h-4 w-4" />
-                  Verify
-                </>
-              )}
-            </Button>
-
-          </div>
-        </div>
-      </motion.div>
-
-      {result && (
-        <motion.div
-          initial={{
-            opacity: 0,
-            y: 25,
-          }}
-          animate={{
-            opacity: 1,
-            y: 0,
-          }}
-          className="mt-8"
-        >
-          <VerdictCard
-            result={result}
-          />
-        </motion.div>
-      )}
     </div>
-  );
+
+  </motion.div>
+
+  {result && (
+
+    <motion.div
+      initial={{
+        opacity: 0,
+        y: 20,
+      }}
+      animate={{
+        opacity: 1,
+        y: 0,
+      }}
+      className="mt-8"
+    >
+
+      <VerdictCard
+        result={result}
+      />
+
+    </motion.div>
+
+  )}
+
+</div>
+
+
+);
 }

@@ -5,13 +5,16 @@ class VerdictParser:
 
         text = text.lower()
 
-        if "false" in text:
+        if "verdict: false" in text:
             return "False"
 
-        if "true" in text:
+        if "verdict: true" in text:
             return "True"
 
-        if "misleading" in text:
+        if "verdict: misleading" in text:
             return "Misleading"
+
+        if "verdict: unverified" in text:
+            return "Unverified"
 
         return "Unknown"

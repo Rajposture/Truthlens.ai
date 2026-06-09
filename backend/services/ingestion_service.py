@@ -2,36 +2,90 @@ from pathlib import Path
 
 from rag.embedder import generate_embedding
 from rag.vector_store import collection
-from services.pdf_service import PDFService
+
+from services.pdf_service import (
+    PDFService
+)
 
 
 class IngestionService:
 
+    CHUNK_SIZE = 800
+    CHUNK_OVERLAP = 150
+    MIN_CHUNK_LENGTH = 100
+
     @staticmethod
-    def ingest_pdf(file_path: str):
+    def split_text(
+        content: str
+    ):
+
+        documents = []
+
+        start = 0
+
+        while start < len(content):
+
+            end = (
+                start +
+                IngestionService.CHUNK_SIZE
+            )
+
+            chunk = content[start:end].strip()
+
+            if (
+                len(chunk)
+                >= IngestionService.MIN_CHUNK_LENGTH
+            ):
+                documents.append(chunk)
+
+            start += (
+                IngestionService.CHUNK_SIZE
+                -
+                IngestionService.CHUNK_OVERLAP
+            )
+
+        return documents
+
+    @staticmethod
+    def ingest_pdf(
+        file_path: str
+    ):
 
         path = Path(file_path)
 
         if not path.exists():
+
             raise FileNotFoundError(
                 f"File not found: {file_path}"
             )
 
-        content = PDFService.extract_text(
-            str(path)
+        print(
+            f"[PDF] Reading {path.name}"
         )
 
-        # Split PDF into larger chunks
-        chunk_size = 1000
-
-        documents = [
-            content[i:i + chunk_size]
-            for i in range(
-                0,
-                len(content),
-                chunk_size
+        content = (
+            PDFService.extract_text(
+                str(path)
             )
-        ]
+        )
+
+        if not content.strip():
+
+            raise ValueError(
+                f"No text extracted from {path.name}"
+            )
+
+        documents = (
+            IngestionService.split_text(
+                content
+            )
+        )
+
+        if not documents:
+
+            raise ValueError(
+                f"No valid chunks generated from {path.name}"
+            )
 
         ids = []
         embeddings = []
@@ -39,60 +93,115 @@ class IngestionService:
 
         for idx, doc in enumerate(documents):
 
-            ids.append(
+            chunk_id = (
                 f"{path.stem}_pdf_{idx}"
             )
 
-            embeddings.append(
-                generate_embedding(doc)
+            try:
+
+                embedding = (
+                    generate_embedding(doc)
+                )
+
+                ids.append(
+                    chunk_id
+                )
+
+                embeddings.append(
+                    embedding
+                )
+
+                metadatas.append(
+                    {
+                        "source": path.name,
+                        "type": "pdf",
+                        "chunk": idx,
+                        "length": len(doc)
+                    }
+                )
+
+            except Exception as e:
+
+                print(
+                    f"[EMBED ERROR] "
+                    f"{chunk_id}: {e}"
+                )
+
+        if not ids:
+
+            raise ValueError(
+                "No embeddings generated."
             )
 
-            metadatas.append(
-                {
-                    "source": path.name,
-                    "type": "pdf",
-                    "chunk": idx
-                }
+        try:
+
+            collection.add(
+                ids=ids,
+                documents=documents[
+                    : len(ids)
+                ],
+                embeddings=embeddings,
+                metadatas=metadatas
             )
 
-        collection.add(
-            ids=ids,
-            documents=documents,
-            embeddings=embeddings,
-            metadatas=metadatas
+        except Exception as e:
+
+            print(
+                f"[CHROMA ERROR] {e}"
+            )
+            raise
+
+        print(
+            f"[SUCCESS] "
+            f"{path.name} -> "
+            f"{len(ids)} chunks"
         )
 
         return {
             "status": "success",
             "file": path.name,
             "type": "pdf",
-            "chunks_ingested": len(documents)
+            "chunks_ingested": len(ids)
         }
 
     @staticmethod
-    def ingest_txt(file_path: str):
+    def ingest_txt(
+        file_path: str
+    ):
 
         path = Path(file_path)
 
         if not path.exists():
+
             raise FileNotFoundError(
                 f"File not found: {file_path}"
             )
+
+        print(
+            f"[TXT] Reading {path.name}"
+        )
 
         content = path.read_text(
             encoding="utf-8"
         )
 
-        chunk_size = 1000
+        if not content.strip():
 
-        documents = [
-            content[i:i + chunk_size]
-            for i in range(
-                0,
-                len(content),
-                chunk_size
+            raise ValueError(
+                f"Empty file: {path.name}"
             )
-        ]
+
+        documents = (
+            IngestionService.split_text(
+                content
+            )
+        )
+
+        if not documents:
+
+            raise ValueError(
+                f"No valid chunks generated from {path.name}"
+            )
 
         ids = []
         embeddings = []
@@ -100,32 +209,73 @@ class IngestionService:
 
         for idx, doc in enumerate(documents):
 
-            ids.append(
+            chunk_id = (
                 f"{path.stem}_txt_{idx}"
             )
 
-            embeddings.append(
-                generate_embedding(doc)
+            try:
+
+                embedding = (
+                    generate_embedding(doc)
+                )
+
+                ids.append(
+                    chunk_id
+                )
+
+                embeddings.append(
+                    embedding
+                )
+
+                metadatas.append(
+                    {
+                        "source": path.name,
+                        "type": "txt",
+                        "chunk": idx,
+                        "length": len(doc)
+                    }
+                )
+
+            except Exception as e:
+
+                print(
+                    f"[EMBED ERROR] "
+                    f"{chunk_id}: {e}"
+                )
+
+        if not ids:
+
+            raise ValueError(
+                "No embeddings generated."
             )
 
-            metadatas.append(
-                {
-                    "source": path.name,
-                    "type": "txt",
-                    "chunk": idx
-                }
+        try:
+
+            collection.add(
+                ids=ids,
+                documents=documents[
+                    : len(ids)
+                ],
+                embeddings=embeddings,
+                metadatas=metadatas
             )
 
-        collection.add(
-            ids=ids,
-            documents=documents,
-            embeddings=embeddings,
-            metadatas=metadatas
+        except Exception as e:
+
+            print(
+                f"[CHROMA ERROR] {e}"
+            )
+            raise
+
+        print(
+            f"[SUCCESS] "
+            f"{path.name} -> "
+            f"{len(ids)} chunks"
         )
 
         return {
             "status": "success",
             "file": path.name,
             "type": "txt",
-            "chunks_ingested": len(documents)
+            "chunks_ingested": len(ids)
         }

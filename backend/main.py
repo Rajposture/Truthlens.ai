@@ -21,6 +21,10 @@ from api.users import (
     router as users_router
 )
 
+from api.chat import (
+    router as chat_router
+)
+
 app = FastAPI(
     title="TruthLens AI",
     version="1.0.0"
@@ -37,29 +41,40 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Health
 app.include_router(
     health_router,
     tags=["Health"]
 )
 
+# Verification
 app.include_router(
     verify_router,
     tags=["Verification"]
 )
 
+# Documents
 app.include_router(
     documents_router,
     tags=["Documents"]
 )
 
+# Reports
 app.include_router(
     reports_router,
     tags=["Reports"]
 )
 
+# Users
 app.include_router(
     users_router,
     tags=["Users"]
+)
+
+# AI Chat Assistant
+app.include_router(
+    chat_router,
+    tags=["Chat"]
 )
 
 
@@ -69,5 +84,11 @@ def root():
     return {
         "application": "TruthLens AI",
         "version": "1.0.0",
-        "status": "healthy"
+        "status": "healthy",
+        "features": [
+            "Verification",
+            "Documents",
+            "Reports",
+            "Chat Assistant"
+        ]
     }
