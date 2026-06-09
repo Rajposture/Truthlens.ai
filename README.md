@@ -145,16 +145,16 @@ Download and install Ollama:
 
 https://ollama.com
 
-Pull Phi-3 Mini:
+Pull your model name:
 
 ```bash
-ollama pull phi3:mini
+ollama pull your model name
 ```
 
 Verify Installation:
 
 ```bash
-ollama run phi3:mini
+ollama run your model name
 ```
 
 ---
@@ -166,7 +166,7 @@ Create a `.env` file in the project root:
 ```env
 APP_NAME=TruthLens AI
 
-OLLAMA_MODEL=phi3:mini
+OLLAMA_MODEL=your model name
 
 CHROMA_DB_PATH=./data/chroma_db
 ```
@@ -178,7 +178,9 @@ CHROMA_DB_PATH=./data/chroma_db
 Start the FastAPI server:
 
 ```bash
-python -m uvicorn backend.main:app --reload
+frontend: npm run dev
+backend: cd backend 
+python -m uvicorn main:app --reload
 ```
 
 Server:
@@ -256,7 +258,7 @@ Building AI systems that transform information into trustworthy knowledge.
 
 ---
 
-## Future Vision
+
 
 TruthLens AI aims to become a comprehensive misinformation detection platform capable of verifying claims using evidence-based reasoning, trusted sources, and transparent AI explanations.
 
