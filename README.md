@@ -1,265 +1,242 @@
 # TruthLens AI
 
-> AI-Powered Fake News Detection & Fact Verification Platform using RAG (Retrieval-Augmented Generation)
+TruthLens AI is an intelligent misinformation detection and document intelligence platform designed to help users verify claims, analyze evidence, and interact with their own knowledge base using Retrieval-Augmented Generation (RAG).
 
-## Sumarry
-
-TruthLens AI is an intelligent fact-checking platform designed to combat misinformation by combining Large Language Models (LLMs), Retrieval-Augmented Generation (RAG), semantic search, and evidence-based reasoning.
-
-Instead of simply classifying content as "Fake" or "Real", TruthLens AI retrieves supporting evidence from trusted knowledge sources and generates transparent, explainable verdicts.
-
-The goal is to provide users with trustworthy insights, confidence scores, and reasoning behind every fact-checking decision.
-
-
-### Current Features
-
-* FastAPI Backend
-* Ollama Local LLM Integration
-* Phi-3 Mini Support
-* Interactive Swagger API Documentation
-* AI-Powered Claim Analysis
-* Health Monitoring Endpoint
-
-### Upcoming Features
-
-* RAG Pipeline
-* ChromaDB Vector Database
-* Semantic Search
-* Evidence Retrieval
-* Source Credibility Scoring
-* Confidence Estimation
-* Fact Verification Reports
-* Analytics Dashboard
-* User Verification History
-* PDF Report Generation
+The platform combines semantic search, vector databases, document ingestion, and local Large Language Models to provide reliable and explainable responses without relying on external AI APIs.
 
 ---
 
-## 🏗️ System Architecture
+## Overview
 
-```text
-User Claim
-     │
-     ▼
-FastAPI API
-     │
-     ▼
-Verification Service
-     │
-     ▼
-RAG Pipeline
-     │
- ┌───┴───────────┐
- ▼               ▼
-Retriever    ChromaDB
-     │
-     ▼
-Retrieved Evidence
-     │
-     ▼
-Phi-3 Mini (Ollama)
-     │
-     ▼
-Fact Verification Report
-```
+TruthLens AI operates through two primary modes:
+
+### 1. Verification Mode
+
+Verification Mode is designed to fact-check claims against the available knowledge base.
+
+Users can submit a statement, claim, or piece of information, and the system will:
+
+* Retrieve relevant evidence from the knowledge base
+* Analyze supporting and contradicting information
+* Generate an explainable verdict
+* Provide confidence scores
+* Display evidence sources used during analysis
+
+Possible verdicts include:
+
+* True
+* False
+* Misleading
+* Unverified
+
+This mode helps users evaluate information using evidence-driven reasoning rather than unsupported assumptions.
 
 ---
 
-## 🛠️ Tech Stack
+### 2. AI Assistant Mode
+
+AI Assistant Mode provides a conversational interface powered by a local Large Language Model and Retrieval-Augmented Generation.
+
+The assistant can:
+
+* Answer questions about uploaded documents
+* Summarize PDFs and text files
+* Explain technical concepts
+* Assist with programming and debugging
+* Maintain conversation memory
+* Retrieve relevant information from the knowledge base
+
+When a query relates to uploaded content, the assistant automatically retrieves relevant context before generating a response.
+
+This enables more accurate and context-aware answers compared to traditional chatbot systems.
+
+---
+
+## Key Features
+
+### Fact Verification
+
+* Claim analysis and classification
+* Evidence-based verdict generation
+* Confidence scoring
+* Explainable reasoning
+
+### Document Intelligence
+
+* PDF ingestion
+* Text file ingestion
+* Automatic chunking
+* Vector embedding generation
+* Semantic document retrieval
+
+### AI Assistant
+
+* Conversational interface
+* Context-aware responses
+* Persistent conversation memory
+* Source attribution
+* Document question answering
+
+### Knowledge Base Management
+
+* Upload documents directly
+* Browse ingested documents
+* Clear and rebuild collections
+* Monitor document statistics
+
+### Retrieval-Augmented Generation (RAG)
+
+* Semantic similarity search
+* ChromaDB vector storage
+* Context retrieval
+* Evidence ranking
+
+---
+
+## System Architecture
+
+### Document Pipeline
+
+1. Upload document
+2. Extract text content
+3. Split content into chunks
+4. Generate embeddings
+5. Store embeddings in ChromaDB
+6. Retrieve relevant chunks during queries
+
+### Verification Pipeline
+
+1. User submits claim
+2. Retrieve supporting evidence
+3. Construct verification prompt
+4. Generate verdict using local LLM
+5. Return verdict, confidence, and reasoning
+
+### Chat Pipeline
+
+1. User submits question
+2. Retrieve relevant context
+3. Load conversation memory
+4. Generate contextual response
+5. Save conversation history
+
+---
+
+## Technology Stack
+
+### Frontend
+
+* Next.js
+* React
+* TypeScript
+* Tailwind CSS
+* React Markdown
+* Lucide Icons
 
 ### Backend
 
-* Python 3.14
 * FastAPI
-* Pydantic
-* Uvicorn
+* Python
 
-### AI & Machine Learning
+### Artificial Intelligence
 
 * Ollama
-* Phi-3 Mini
+* Qwen 2.5 (0.5B)
 * Sentence Transformers
-* LangChain
 
 ### Retrieval Layer
 
 * ChromaDB
-* Vector Embeddings
 * Semantic Search
+* Vector Embeddings
 
-### Frontend (Planned)
+### Document Processing
 
-* Next.js
-* TypeScript
-* Tailwind CSS
-* Recharts
+* PyPDF
+* Custom Chunking Pipeline
 
-### Infrastructure
+### Data Storage
 
-* Docker
-* GitHub
-* REST APIs
+* JSON-based Session Memory
+* ChromaDB Persistent Storage
 
+---
+
+## Project Structure
+
+```text
+frontend/
+├── app/
+├── components/
+├── lib/
+
+backend/
+├── api/
+├── services/
+├── rag/
+├── llm/
+├── models/
+├── data/
+```
+
+---
 
 ## Installation
 
-### Clone Repository
-
-```bash
-git clone https://github.com/yourusername/truthlens-ai.git
-
-cd truthlens-ai
-```
-
-### Create Virtual Environment
-
-```bash
-python -m venv venv
-```
-
-### Activate Environment
-
-Windows:
-
-```bash
-venv\Scripts\activate
-```
-
-Linux / macOS:
-
-```bash
-source venv/bin/activate
-```
-
-### Install Dependencies
+### Backend
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
-
-## 🤖 Install Ollama
-
-Download and install Ollama:
-
-https://ollama.com
-
-Pull your model name:
-
-```bash
-ollama pull your model name
-```
-
-Verify Installation:
-
-```bash
-ollama run your model name
-```
-
----
-
-##  Environment Variables
-
-Create a `.env` file in the project root:
-
-```env
-APP_NAME=TruthLens AI
-
-OLLAMA_MODEL=your model name
-
-CHROMA_DB_PATH=./data/chroma_db
-```
-
----
-
-##  Running the Application
-
 Start the FastAPI server:
 
 ```bash
-frontend: npm run dev
-backend: cd backend 
-python -m uvicorn main:app --reload
+uvicorn main:app --reload
 ```
 
-Server:
+### Frontend
 
-```text
-http://127.0.0.1:8000
-```
-
-Swagger Documentation:
-
-```text
-http://127.0.0.1:8000/docs
+```bash
+npm install
+npm run dev
 ```
 
 ---
 
-##  Project Roadmap
+## Local AI Setup
 
-### Phase 1 – Foundation
+Install Ollama:
 
-* FastAPI Setup
-* Ollama Integration
-* Phi-3 Mini Integration
-* Verification Endpoint
+https://ollama.com
 
-### Phase 2 – RAG System
+Pull the model:
 
-* Embedding Pipeline
-* ChromaDB Integration
-* Semantic Retrieval
-* Evidence Ranking
+```bash
+ollama pull qwen2.5:0.5b
+```
 
-### Phase 3 – Fact Verification Engine
+Run the model:
 
-* Evidence-Based Reasoning
-* Confidence Scoring
-* Credibility Assessment
-* Explainable AI Reports
-
-### Phase 4 – User Platform
-
-* Authentication
-* Verification History
-* Dashboard Analytics
-* PDF Reports
-
-### Phase 5 – Production Deployment
-
-* Dockerization
-* CI/CD
-* Monitoring
-* Cloud Deployment
-
-
-This project demonstrates:
-
-* Retrieval-Augmented Generation (RAG)
-* Large Language Model Integration
-* FastAPI Development
-* Vector Databases
-* Semantic Search
-* Information Retrieval
-* Prompt Engineering
-* AI System Design
-* Backend Architecture
-* Explainable AI
+```bash
+ollama serve
+```
 
 ---
 
- Author
+## Future Improvements
 
-**Raj Posture**
-
-Building AI systems that transform information into trustworthy knowledge.
+* Advanced reranking models
+* Multi-document reasoning
+* Source highlighting
+* Streaming responses
+* User authentication
+* Conversation search
+* Knowledge graph integration
+* Real-time web verification
 
 ---
 
+## Author  : Raj Posture
 
-
-TruthLens AI aims to become a comprehensive misinformation detection platform capable of verifying claims using evidence-based reasoning, trusted sources, and transparent AI explanations.
-
-*"Truth matters. Evidence matters more."*
+TruthLens AI was developed as an end-to-end AI platform focused on misinformation detection, document intelligence, and retrieval-augmented conversational AI using fully local infrastructure.
