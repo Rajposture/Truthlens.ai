@@ -37,13 +37,11 @@ class PDFService:
         )
 
         print(
-            f"[PDF] Reading "
-            f"{path.name}"
+            f"[PDF] Reading {path.name}"
         )
 
         print(
-            f"[PDF] Pages: "
-            f"{total_pages}"
+            f"[PDF] Total Pages: {total_pages}"
         )
 
         for page_num, page in enumerate(
@@ -55,27 +53,30 @@ class PDFService:
 
                 page_text = (
                     page.extract_text()
+                    or ""
                 )
 
-                if (
-                    page_text and
-                    page_text.strip()
-                ):
+                page_text = (
+                    page_text
+                    .replace("\x00", "")
+                    .strip()
+                )
+
+                if page_text:
 
                     text_parts.append(
                         f"\n[PAGE {page_num}]\n"
                     )
 
                     text_parts.append(
-                        page_text.strip()
+                        page_text
                     )
 
             except Exception as e:
 
                 print(
                     f"[PDF WARNING] "
-                    f"Failed page "
-                    f"{page_num}: {e}"
+                    f"Page {page_num}: {e}"
                 )
 
                 continue
@@ -84,11 +85,16 @@ class PDFService:
             text_parts
         )
 
+        final_text = (
+            final_text
+            .replace("\t", " ")
+            .replace("\r", "")
+        )
+
         if not final_text.strip():
 
             raise ValueError(
-                f"No text extracted from "
-                f"{path.name}"
+                f"No text extracted from {path.name}"
             )
 
         print(
@@ -111,19 +117,29 @@ class PDFService:
                 f"PDF not found: {pdf_path}"
             )
 
-        reader = PdfReader(
-            str(path)
-        )
+        try:
 
-        return {
-            "filename": path.name,
-            "pages": len(
-                reader.pages
-            ),
-            "encrypted": reader.is_encrypted,
-            "size_mb": round(
-                path.stat().st_size
-                / (1024 * 1024),
-                2
+            reader = PdfReader(
+                str(path)
             )
-        }
+
+            return {
+                "filename": path.name,
+                "pages": len(
+                    reader.pages
+                ),
+                "encrypted": (
+                    reader.is_encrypted
+                ),
+                "size_mb": round(
+                    path.stat().st_size
+                    / (1024 * 1024),
+                    2
+                ),
+            }
+
+        except Exception as e:
+
+            raise ValueError(
+                f"Failed to read PDF stats: {e}"
+            )

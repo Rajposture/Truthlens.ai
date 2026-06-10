@@ -1,67 +1,72 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-
+import { useState, useEffect, useRef } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import {
-  Bot,
-  User,
   Send,
-  Sparkles,
+  Trash2,
+  Plus,
+  Paperclip,
 } from "lucide-react";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+  sources?: string[];
 }
 
 export default function ChatPage() {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: "assistant",
+      content: "How can I help you today?",
+    },
+  ]);
 
-  const [messages, setMessages] =
-    useState<Message[]>([
-      {
-        role: "assistant",
-        content:
-          `# Welcome to TruthLens Assistant
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
 
-I can help with:
-
-- Python
-- FastAPI
-- React
-- Next.js
-- Java
-- Debugging
-- Document Analysis
-- RAG Questions
-
-Ask me anything.`,
-      },
-    ]);
-
-  const [input, setInput] =
+  const [sessionId, setSessionId] =
     useState("");
 
-  const [loading, setLoading] =
-    useState(false);
+  const fileInputRef =
+    useRef<HTMLInputElement>(null);
 
-  const messagesEndRef =
+  const bottomRef =
     useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const existing =
+      localStorage.getItem(
+        "truthlens_session"
+      );
 
-    messagesEndRef.current?.scrollIntoView({
+    if (existing) {
+      setSessionId(existing);
+    } else {
+      const id =
+        crypto.randomUUID();
+
+      localStorage.setItem(
+        "truthlens_session",
+        id
+      );
+
+      setSessionId(id);
+    }
+  }, []);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({
       behavior: "smooth",
     });
-
-  }, [messages]);
+  }, [messages, loading]);
 
   async function sendMessage() {
-
     if (!input.trim()) return;
 
     const question = input;
@@ -78,7 +83,6 @@ Ask me anything.`,
     setLoading(true);
 
     try {
-
       const response =
         await fetch(
           "http://localhost:8000/chat",
@@ -90,6 +94,7 @@ Ask me anything.`,
             },
             body: JSON.stringify({
               message: question,
+              session_id: sessionId,
             }),
           }
         );
@@ -101,107 +106,168 @@ Ask me anything.`,
         ...prev,
         {
           role: "assistant",
-          content:
-            data.response ??
-            "No response received.",
+          content: data.response,
+          sources:
+            data.sources || [],
         },
       ]);
-
     } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content:
+            "Unable to connect to backend.",
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-      console.error(error);
+  async function clearChat() {
+    try {
+      await fetch(
+        "http://localhost:8000/chat/history",
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            session_id: sessionId,
+          }),
+        }
+      );
+    } catch {}
+
+    setMessages([
+      {
+        role: "assistant",
+        content:
+          "How can I help you today?",
+      },
+    ]);
+  }
+
+  function createNewChat() {
+    const id =
+      crypto.randomUUID();
+
+    localStorage.setItem(
+      "truthlens_session",
+      id
+    );
+
+    setSessionId(id);
+
+    setMessages([
+      {
+        role: "assistant",
+        content:
+          "How can I help you today?",
+      },
+    ]);
+  }
+
+  async function uploadFile(
+    file: File
+  ) {
+    const formData =
+      new FormData();
+
+    formData.append(
+      "file",
+      file
+    );
+
+    try {
+      await fetch(
+        "http://localhost:8000/documents/upload",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
           content:
-            "Unable to connect to TruthLens backend.",
+            `Uploaded **${file.name}** successfully.`,
         },
       ]);
-
-    } finally {
-
-      setLoading(false);
-
+    } catch {
+      alert(
+        "Upload failed."
+      );
     }
   }
 
   return (
     <DashboardLayout>
+      <div className="mx-auto flex h-[calc(100vh-120px)] max-w-5xl flex-col">
 
-      <div className="flex h-[calc(100vh-40px)] flex-col">
+        {/* Top Bar */}
 
-        {/* Header */}
+        <div className="mb-6 flex items-center justify-between">
 
-        <div
-          className="
-            mb-6
-            rounded-3xl
-            border
-            border-zinc-800
-            bg-zinc-950
-            p-6
-          "
-        >
+          <div>
+            <h1 className="text-2xl font-semibold">
+              AI Assistant
+            </h1>
 
-          <div className="flex items-center justify-between">
+            <p className="text-sm text-zinc-500">
+              Powered by Ollama + RAG
+            </p>
+          </div>
 
-            <div>
+          <div className="flex gap-3">
 
-              <h1 className="text-4xl font-bold">
-                TruthLens Assistant
-              </h1>
-
-              <p className="mt-2 text-zinc-500">
-                AI Coding, Debugging &
-                Document Intelligence
-              </p>
-
-            </div>
-
-            <div
+            <button
+              onClick={createNewChat}
               className="
-                flex
-                items-center
-                gap-2
+                flex items-center gap-2
                 rounded-xl
-                border
-                border-cyan-900
-                bg-cyan-950/20
-                px-4
-                py-2
+                border border-zinc-800
+                px-4 py-2
+                hover:bg-zinc-900
               "
             >
-              <Sparkles
-                className="
-                  h-4
-                  w-4
-                  text-cyan-400
-                "
-              />
+              <Plus size={16} />
+              New Chat
+            </button>
 
-              <span>
-                AI Online
-              </span>
-
-            </div>
+            <button
+              onClick={clearChat}
+              className="
+                flex items-center gap-2
+                rounded-xl
+                border border-zinc-800
+                px-4 py-2
+                hover:bg-zinc-900
+              "
+            >
+              <Trash2 size={16} />
+              Clear
+            </button>
 
           </div>
 
         </div>
 
-        {/* Chat */}
+        {/* Chat Area */}
 
         <div
           className="
             flex-1
             overflow-y-auto
             rounded-3xl
-            border
-            border-zinc-800
+            border border-zinc-800
             bg-zinc-950
-            p-6
+            p-8
           "
         >
 
@@ -212,226 +278,154 @@ Ask me anything.`,
                 message,
                 index
               ) => (
-
                 <div
                   key={index}
-                  className={`
-                    flex gap-4
-                    ${
-                      message.role === "user"
-                        ? "justify-end"
-                        : "justify-start"
-                    }
-                  `}
+                  className={`flex ${
+                    message.role === "user"
+                      ? "justify-end"
+                      : "justify-start"
+                  }`}
                 >
-
-                  {message.role ===
-                    "assistant" && (
-
-                    <div
-                      className="
-                        flex
-                        h-10
-                        w-10
-                        shrink-0
-                        items-center
-                        justify-center
-                        rounded-full
-                        bg-cyan-600
-                      "
-                    >
-                      <Bot
-                        className="
-                          h-5
-                          w-5
-                        "
-                      />
-                    </div>
-
-                  )}
-
                   <div
                     className={`
-                      max-w-4xl
-                      overflow-hidden
-                      rounded-2xl
-                      px-6
-                      py-4
+                      max-w-3xl
+                      rounded-3xl
+                      px-5 py-4
                       ${
                         message.role === "user"
                           ? "bg-blue-600 text-white"
-                          : "bg-zinc-900 text-zinc-200"
+                          : "bg-zinc-900"
                       }
                     `}
                   >
-
-                    <div
-                      className="
-                        prose
-                        prose-invert
-                        max-w-none
-                      "
+                    <ReactMarkdown
+                      remarkPlugins={[
+                        remarkGfm,
+                      ]}
                     >
-                      <ReactMarkdown
-                        remarkPlugins={[
-                          remarkGfm,
-                        ]}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
-                    </div>
+                      {message.content}
+                    </ReactMarkdown>
 
+                    {message.sources &&
+                      message.sources.length >
+                        0 && (
+                        <div className="mt-4 border-t border-zinc-800 pt-3">
+
+                          <p className="mb-2 text-xs text-zinc-500">
+                            Sources
+                          </p>
+
+                          {message.sources.map(
+                            (
+                              source,
+                              idx
+                            ) => (
+                              <div
+                                key={idx}
+                                className="text-xs text-cyan-400"
+                              >
+                                {source}
+                              </div>
+                            )
+                          )}
+                        </div>
+                      )}
                   </div>
-
-                  {message.role ===
-                    "user" && (
-
-                    <div
-                      className="
-                        flex
-                        h-10
-                        w-10
-                        shrink-0
-                        items-center
-                        justify-center
-                        rounded-full
-                        bg-blue-600
-                      "
-                    >
-                      <User
-                        className="
-                          h-5
-                          w-5
-                        "
-                      />
-                    </div>
-
-                  )}
-
                 </div>
-
               )
             )}
 
             {loading && (
-
-              <div className="flex gap-4">
-
+              <div className="flex">
                 <div
                   className="
-                    flex
-                    h-10
-                    w-10
-                    items-center
-                    justify-center
-                    rounded-full
-                    bg-cyan-600
-                  "
-                >
-                  <Bot
-                    className="
-                      h-5
-                      w-5
-                    "
-                  />
-                </div>
-
-                <div
-                  className="
-                    rounded-2xl
+                    flex items-center gap-2
+                    rounded-3xl
                     bg-zinc-900
-                    px-6
-                    py-4
+                    px-5 py-4
                   "
                 >
-                  Thinking...
+                  <div className="h-2 w-2 animate-bounce rounded-full bg-zinc-400" />
+                  <div className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:150ms]" />
+                  <div className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:300ms]" />
                 </div>
-
               </div>
-
             )}
 
-            <div
-              ref={messagesEndRef}
-            />
+            <div ref={bottomRef} />
 
           </div>
 
         </div>
 
-        {/* Input */}
+        {/* Composer */}
 
         <div className="mt-6">
 
           <div
             className="
-              flex
-              gap-3
-              rounded-2xl
-              border
-              border-zinc-800
+              flex items-center gap-3
+              rounded-3xl
+              border border-zinc-800
               bg-zinc-950
               p-3
             "
           >
 
+            <button
+              onClick={() =>
+                fileInputRef.current?.click()
+              }
+              className="
+                rounded-xl
+                p-3
+                hover:bg-zinc-900
+              "
+            >
+              <Paperclip size={18} />
+            </button>
+
             <input
+              ref={fileInputRef}
+              type="file"
+              hidden
+              onChange={(e) => {
+                const file =
+                  e.target.files?.[0];
+
+                if (file)
+                  uploadFile(file);
+              }}
+            />
+
+            <textarea
               value={input}
               onChange={(e) =>
                 setInput(
                   e.target.value
                 )
               }
-              onKeyDown={(e) => {
-
-                if (
-                  e.key === "Enter" &&
-                  !loading
-                ) {
-
-                  sendMessage();
-
-                }
-
-              }}
-              placeholder="
-                Ask about code,
-                debugging,
-                PDFs,
-                AI,
-                or anything...
-              "
+              rows={1}
+              placeholder="Ask anything..."
               className="
                 flex-1
+                resize-none
                 bg-transparent
-                px-3
                 outline-none
               "
             />
 
             <button
-              onClick={
-                sendMessage
-              }
-              disabled={
-                loading
-              }
+              onClick={sendMessage}
+              disabled={loading}
               className="
                 rounded-xl
                 bg-blue-600
-                px-5
-                py-3
-                transition
+                p-3
                 hover:bg-blue-500
-                disabled:opacity-50
               "
             >
-              <Send
-                className="
-                  h-4
-                  w-4
-                "
-              />
+              <Send size={18} />
             </button>
 
           </div>
@@ -439,7 +433,6 @@ Ask me anything.`,
         </div>
 
       </div>
-
     </DashboardLayout>
   );
 }

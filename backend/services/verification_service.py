@@ -1,6 +1,8 @@
 import re
 
-from rag.pipeline import verify_claim
+from rag.pipeline import (
+    verify_claim
+)
 
 from services.verdict_parser import (
     VerdictParser
@@ -23,79 +25,107 @@ class VerificationService:
         user_id: int | None = None
     ):
 
-        result = verify_claim(
-            claim
-        )
+        try:
 
-        analysis = result["analysis"]
-
-        verdict = VerdictParser.classify(
-            analysis
-        )
-
-        confidence = "Unknown"
-
-        reasoning = analysis
-
-        confidence_match = re.search(
-            r"Confidence:\s*(.*)",
-            analysis,
-            re.IGNORECASE
-        )
-
-        reasoning_match = re.search(
-            r"Reasoning:\s*(.*)",
-            analysis,
-            re.IGNORECASE | re.DOTALL
-        )
-
-        if confidence_match:
-
-            confidence = (
-                confidence_match
-                .group(1)
-                .strip()
+            result = verify_claim(
+                claim
             )
 
-        if reasoning_match:
+            analysis = result.get(
+                "analysis",
+                ""
+            )
+
+            verdict = (
+                VerdictParser.classify(
+                    analysis
+                )
+            )
+
+            confidence = "0"
+
+            confidence_match = re.search(
+                r"Confidence:\s*(.*)",
+                analysis,
+                re.IGNORECASE
+            )
+
+            if confidence_match:
+
+                confidence = (
+                    confidence_match
+                    .group(1)
+                    .strip()
+                )
+
+            reasoning_match = re.search(
+                r"Reasoning:\s*(.*)",
+                analysis,
+                re.IGNORECASE |
+                re.DOTALL
+            )
 
             reasoning = (
-                reasoning_match
-                .group(1)
-                .strip()
+                reasoning_match.group(1)
+                if reasoning_match
+                else analysis
             )
 
-        response = {
-            "claim": claim,
-            "verdict": verdict,
-            "confidence": confidence,
-            "reasoning": reasoning,
-            "evidence": result["evidence"]
-        }
+            response = {
 
-        try:
+                "claim": claim,
 
-            save_verification(
-                response,
-                user_id=user_id
-            )
+                "verdict": verdict,
+
+                "confidence":
+                confidence,
+
+                "reasoning":
+                reasoning,
+
+                "evidence":
+                result.get(
+                    "evidence",
+                    []
+                )
+            }
+
+            try:
+
+                save_verification(
+                    response,
+                    user_id
+                )
+
+            except Exception as e:
+
+                print(
+                    f"[DB] {e}"
+                )
+
+            try:
+
+                ReportService.save_report(
+                    response
+                )
+
+            except Exception as e:
+
+                print(
+                    f"[REPORT] {e}"
+                )
+
+            return response
 
         except Exception as e:
 
-            print(
-                f"Failed to save verification: {e}"
-            )
-
-        try:
-
-            ReportService.save_report(
-                response
-            )
-
-        except Exception as e:
-
-            print(
-                f"Failed to save report: {e}"
-            )
-
-        return response
+            return {
+                "claim": claim,
+                "verdict":
+                "UNVERIFIED",
+                "confidence":
+                "0",
+                "reasoning":
+                str(e),
+                "evidence": []
+            }

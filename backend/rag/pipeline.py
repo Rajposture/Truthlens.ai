@@ -1,5 +1,12 @@
-from llm.ollama import OllamaClient
-from services.retrieval_service import RetrievalService
+from llm.ollama import (
+    OllamaClient
+)
+
+from services.retrieval_service import (
+    RetrievalService
+)
+
+import time
 
 
 QUESTION_WORDS = [
@@ -12,15 +19,20 @@ QUESTION_WORDS = [
 ]
 
 
-def verify_claim(claim: str):
+def verify_claim(
+    claim: str
+):
 
-    claim_lower = claim.strip().lower()
+    claim_lower = (
+        claim.strip()
+        .lower()
+    )
 
-    # Prevent questions from entering fact-check pipeline
     if any(
         claim_lower.startswith(word)
         for word in QUESTION_WORDS
     ):
+
         return {
             "claim": claim,
             "evidence": [],
@@ -29,56 +41,50 @@ Verdict: UNVERIFIED
 
 Confidence: 0
 
-Reasoning: This endpoint verifies factual claims. Questions should be sent to the AI Assistant chat endpoint.
+Reasoning: Questions belong in the AI Assistant.
 """
         }
 
-    evidence = RetrievalService.get_evidence(
-        claim
+    retrieval_start = time.time()
+
+    evidence = (
+        RetrievalService
+        .get_evidence(
+            query=claim,
+            top_k=3,
+            use_reranker=True
+        )
     )
+
+    print(
+        f"[VERIFY] Retrieval: "
+        f"{time.time() - retrieval_start:.2f}s"
+    )
+
+    if not evidence:
+
+        return {
+            "claim": claim,
+            "evidence": [],
+            "analysis": """
+Verdict: UNVERIFIED
+
+Confidence: 0
+
+Reasoning: No relevant evidence found.
+"""
+        }
 
     context = "\n\n".join(
-        item["content"]
-        for item in evidence
+        [
+            f"Source: {item['metadata'].get('source','Unknown')}\n"
+            f"{item['content'][:500]}"
+            for item in evidence
+        ]
     )
 
-    # No evidence found
-    if not context.strip():
-
-        return {
-            "claim": claim,
-            "evidence": [],
-            "analysis": """
-Verdict: UNVERIFIED
-
-Confidence: 0
-
-Reasoning: No relevant evidence was found in the knowledge base.
-"""
-        }
-
     prompt = f"""
-You are TruthLens AI.
-
-You are a professional fact-checking system.
-
-Use ONLY the supplied evidence.
-
-Rules:
-
-1. TRUE
-   - Evidence clearly supports claim.
-
-2. FALSE
-   - Evidence clearly contradicts claim.
-
-3. MISLEADING
-   - Evidence partially supports claim but important context is missing.
-
-4. UNVERIFIED
-   - Evidence is insufficient, unrelated, or unclear.
-
-Never guess.
+Fact Check The Following Claim
 
 Claim:
 {claim}
@@ -86,17 +92,32 @@ Claim:
 Evidence:
 {context}
 
+Rules:
+
+- Use ONLY the supplied evidence.
+- Do not assume facts.
+- Do not use outside knowledge.
+
 Return EXACTLY:
 
 Verdict: TRUE/FALSE/MISLEADING/UNVERIFIED
 
 Confidence: 0-100
 
-Reasoning: Short explanation.
+Reasoning: One short paragraph.
 """
 
-    analysis = OllamaClient.generate(
-        prompt
+    llm_start = time.time()
+
+    analysis = (
+        OllamaClient.generate(
+            prompt
+        )
+    )
+
+    print(
+        f"[VERIFY] LLM: "
+        f"{time.time() - llm_start:.2f}s"
     )
 
     return {

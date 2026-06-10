@@ -7,7 +7,8 @@ class RetrievalService:
     @staticmethod
     def get_evidence(
         query: str,
-        top_k: int = 3
+        top_k: int = 3,
+        use_reranker: bool = False
     ):
 
         evidence = retrieve(
@@ -15,9 +16,16 @@ class RetrievalService:
             k=top_k
         )
 
-        evidence = Reranker.rerank(
-            query,
-            evidence
-        )
+        if not evidence:
+            return []
 
-        return evidence
+        if use_reranker:
+
+            evidence = (
+                Reranker.rerank(
+                    query,
+                    evidence
+                )
+            )
+
+        return evidence[:top_k]

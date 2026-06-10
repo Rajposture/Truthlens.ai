@@ -1,19 +1,63 @@
+from sentence_transformers import (
+    CrossEncoder
+)
+
+
 class Reranker:
 
-    @staticmethod
+    model = CrossEncoder(
+        "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    )
+
+    @classmethod
     def rerank(
+        cls,
         query: str,
         evidence: list
     ):
-        """
-        Placeholder reranker.
 
-        Later:
-        - Cross Encoder
-        - BGE Reranker
-        - Cohere Rerank
+        if not evidence:
+            return []
 
-        For now just return evidence.
-        """
+        try:
 
-        return evidence
+            pairs = [
+                (
+                    query,
+                    item["content"]
+                )
+                for item in evidence
+            ]
+
+            scores = cls.model.predict(
+                pairs
+            )
+
+            ranked = []
+
+            for item, score in zip(
+                evidence,
+                scores
+            ):
+
+                item[
+                    "rerank_score"
+                ] = float(score)
+
+                ranked.append(item)
+
+            ranked.sort(
+                key=lambda x:
+                x["rerank_score"],
+                reverse=True
+            )
+
+            return ranked[:5]
+
+        except Exception as e:
+
+            print(
+                f"[RERANK ERROR] {e}"
+            )
+
+            return evidence[:5]
