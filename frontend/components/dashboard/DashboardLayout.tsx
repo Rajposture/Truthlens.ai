@@ -2,25 +2,44 @@ import AppSidebar from "../sidebar/AppSidebar";
 import Navbar from "../navbar/Navbar";
 
 export default function DashboardLayout({
-  children,
+children,
 }: {
-  children: React.ReactNode;
+children: React.ReactNode;
 }) {
-  return (
-    <div className="flex min-h-screen bg-[#080808] text-white">
+return ( <div
+   className="
+     flex
+     min-h-screen
+     text-white
+     overflow-hidden
+   "
+ > <AppSidebar />
 
-      <AppSidebar />
 
-      <div className="flex flex-1 flex-col min-w-0">
+  <div
+    className="
+      relative
+      flex
+      flex-1
+      flex-col
+      min-w-0
+    "
+  >
+    <Navbar />
 
-        <Navbar />
+    <main
+      className="
+        relative
+        flex-1
+        overflow-auto
+        p-6
+      "
+    >
+      {children}
+    </main>
+  </div>
+</div>
 
-        <main className="flex-1 p-6 overflow-auto">
-          {children}
-        </main>
 
-      </div>
-
-    </div>
-  );
+);
 }
