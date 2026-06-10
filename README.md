@@ -1,5 +1,7 @@
 # TruthLens AI
 
+![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
+
 TruthLens AI is an intelligent misinformation detection and document intelligence platform designed to help users verify claims, analyze evidence, and interact with their own knowledge base using Retrieval-Augmented Generation (RAG).
 
 The platform combines semantic search, vector databases, document ingestion, and local Large Language Models to provide reliable and explainable responses without relying on external AI APIs.
