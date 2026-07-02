@@ -1,47 +1,69 @@
-from llm.ollama import (
-    OllamaClient
+from llm.gemini import (
+GeminiClient
 )
 
 from services.retrieval_service import (
-    RetrievalService
+RetrievalService
 )
 
 import time
 
-
 QUESTION_WORDS = [
-    "what",
-    "why",
-    "how",
-    "when",
-    "where",
-    "who",
+"what",
+"why",
+"how",
+"when",
+"where",
+"who",
+"is",
+"are",
+"can",
+"could",
+"should",
+"would",
+"will",
+"do",
+"does",
+"did",
 ]
 
-
 def verify_claim(
-    claim: str
+claim: str
 ):
+    claim = claim.strip()
 
-    claim_lower = (
-        claim.strip()
-        .lower()
-    )
+    if not claim:
+        return {
+            "claim": claim,
+            "evidence": [],
+            "analysis": """
+
+
+Verdict: UNVERIFIED
+
+Confidence: 0
+
+Reasoning: Empty claim provided.
+"""
+        }
+
+    claim_lower = claim.lower()
 
     if any(
         claim_lower.startswith(word)
         for word in QUESTION_WORDS
     ):
-
         return {
             "claim": claim,
             "evidence": [],
             "analysis": """
+
+
 Verdict: UNVERIFIED
 
 Confidence: 0
 
-Reasoning: Questions belong in the AI Assistant.
+Reasoning: Questions should be asked in the AI Assistant.
 """
         }
 
@@ -52,7 +74,7 @@ Reasoning: Questions belong in the AI Assistant.
         .get_evidence(
             query=claim,
             top_k=3,
-            use_reranker=True
+            use_reranker=False
         )
     )
 
@@ -62,11 +84,12 @@ Reasoning: Questions belong in the AI Assistant.
     )
 
     if not evidence:
-
         return {
             "claim": claim,
             "evidence": [],
             "analysis": """
+
+
 Verdict: UNVERIFIED
 
 Confidence: 0
@@ -77,14 +100,21 @@ Reasoning: No relevant evidence found.
 
     context = "\n\n".join(
         [
-            f"Source: {item['metadata'].get('source','Unknown')}\n"
-            f"{item['content'][:500]}"
+            (
+                f"Source: "
+                f"{item['metadata'].get('source', 'Unknown')}\n\n"
+                f"{item['content'][:800]}"
+            )
             for item in evidence
         ]
     )
 
     prompt = f"""
-Fact Check The Following Claim
+
+
+You are TruthLens AI.
+
+Your task is to verify claims using ONLY the evidence provided.
 
 Claim:
 {claim}
@@ -92,28 +122,45 @@ Claim:
 Evidence:
 {context}
 
-Rules:
+Instructions:
 
-- Use ONLY the supplied evidence.
-- Do not assume facts.
-- Do not use outside knowledge.
+* Use only the supplied evidence.
+* Do not use outside knowledge.
+* If evidence is insufficient, return UNVERIFIED.
+* Be objective.
+* Do not speculate.
+* Keep reasoning concise.
 
-Return EXACTLY:
+Return EXACTLY in this format:
 
-Verdict: TRUE/FALSE/MISLEADING/UNVERIFIED
+Verdict: TRUE | FALSE | MISLEADING | UNVERIFIED
 
 Confidence: 0-100
 
-Reasoning: One short paragraph.
+Reasoning: Brief explanation based only on the evidence.
 """
 
     llm_start = time.time()
 
-    analysis = (
-        OllamaClient.generate(
-            prompt
+    try:
+        analysis = (
+            GeminiClient.generate(
+                prompt
+            )
         )
-    )
+    except Exception as e:
+        print(
+            f"[VERIFY GEMINI ERROR] {e}"
+        )
+        analysis = """
+
+
+Verdict: UNVERIFIED
+
+Confidence: 0
+
+Reasoning: Verification service is temporarily unavailable.
+"""
 
     print(
         f"[VERIFY] LLM: "
@@ -125,3 +172,4 @@ Reasoning: One short paragraph.
         "evidence": evidence,
         "analysis": analysis
     }
+

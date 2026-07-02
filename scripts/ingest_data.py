@@ -5,7 +5,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
 from rag.embedder import generate_embedding
-from rag.vector_store import collection
+from rag.vector_store import get_collection
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
@@ -18,7 +18,7 @@ for idx, doc in enumerate(documents):
     if not doc.strip():
         continue
 
-    collection.add(
+    get_collection().add(
         ids=[str(idx)],
         documents=[doc],
         embeddings=[generate_embedding(doc)]

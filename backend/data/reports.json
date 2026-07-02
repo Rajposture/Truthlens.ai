@@ -1,5 +1,19 @@
 [
   {
+    "claim": "is there information about ai",
+    "verdict": "Unverified",
+    "confidence": "0",
+    "reasoning": "No relevant evidence found.\n",
+    "evidence": []
+  },
+  {
+    "claim": "is this document tells about Ai",
+    "verdict": "Unverified",
+    "confidence": "0",
+    "reasoning": "No relevant evidence found.\n",
+    "evidence": []
+  },
+  {
     "claim": "is this pdf contain artificial intelligence true or false",
     "verdict": "Unknown",
     "confidence": "** 85",

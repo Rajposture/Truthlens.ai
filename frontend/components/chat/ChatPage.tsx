@@ -16,16 +16,9 @@ Trash2,
 } from "lucide-react";
 
 export default function ChatPage() {
+
 const [messages, setMessages] =
-useState<Message[]>([
-{
-id: crypto.randomUUID(),
-role: "assistant",
-content:
-"How can I help you today?",
-createdAt: new Date(),
-},
-]);
+useState<Message[]>([]);
 
 const [input, setInput] =
 useState("");
@@ -43,13 +36,17 @@ const bottomRef =
 useRef<HTMLDivElement>(null);
 
 useEffect(() => {
+
+
 const existing =
-localStorage.getItem(
-"truthlens_session"
-);
+  localStorage.getItem(
+    "truthlens_session"
+  );
 
 if (existing) {
+
   setSessionId(existing);
+
   return;
 }
 
@@ -67,19 +64,25 @@ setSessionId(id);
 }, []);
 
 useEffect(() => {
+
+
 bottomRef.current?.scrollIntoView({
-behavior: "smooth",
+  behavior: "smooth",
 });
+
+
 }, [messages, loading]);
 
 async function uploadAttachments() {
-if (
-attachments.length === 0
-)
-return;
 
+
+if (
+  attachments.length === 0
+)
+  return;
 
 for (const file of attachments) {
+
   const formData =
     new FormData();
 
@@ -97,12 +100,14 @@ for (const file of attachments) {
   );
 }
 
+
 }
 
 async function sendMessage() {
-const hasPrompt =
-input.trim().length > 0;
 
+
+const hasPrompt =
+  input.trim().length > 0;
 
 const hasFiles =
   attachments.length > 0;
@@ -130,6 +135,7 @@ setMessages((prev) => [
 setLoading(true);
 
 try {
+
   await uploadAttachments();
 
   const response =
@@ -158,8 +164,7 @@ try {
       id: crypto.randomUUID(),
       role: "assistant",
       content:
-        data.response ||
-        "No response returned.",
+        data.response,
       sources:
         data.sources || [],
       createdAt:
@@ -169,7 +174,9 @@ try {
 
   setInput("");
   setAttachments([]);
+
 } catch {
+
   setMessages((prev) => [
     ...prev,
     {
@@ -181,17 +188,21 @@ try {
         new Date(),
     },
   ]);
+
 } finally {
+
   setLoading(false);
+
 }
 
 
 }
 
 function createNewChat() {
-const id =
-crypto.randomUUID();
 
+
+const id =
+  crypto.randomUUID();
 
 localStorage.setItem(
   "truthlens_session",
@@ -200,16 +211,7 @@ localStorage.setItem(
 
 setSessionId(id);
 
-setMessages([
-  {
-    id: crypto.randomUUID(),
-    role: "assistant",
-    content:
-      "How can I help you today?",
-    createdAt:
-      new Date(),
-  },
-]);
+setMessages([]);
 
 setInput("");
 setAttachments([]);
@@ -218,40 +220,38 @@ setAttachments([]);
 }
 
 async function clearChat() {
+
+
 try {
-await fetch(
-"http://localhost:8000/chat/history",
-{
-method: "DELETE",
-headers: {
-"Content-Type":
-"application/json",
-},
-body: JSON.stringify({
-session_id:
-sessionId,
-}),
-}
-);
+
+  await fetch(
+    "http://localhost:8000/chat/history",
+    {
+      method: "DELETE",
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+      body: JSON.stringify({
+        session_id:
+          sessionId,
+      }),
+    }
+  );
+
 } catch {}
 
-
-setMessages([
-  {
-    id: crypto.randomUUID(),
-    role: "assistant",
-    content:
-      "How can I help you today?",
-    createdAt:
-      new Date(),
-  },
-]);
+setMessages([]);
 
 
 }
 
-return ( <DashboardLayout> <VideoBackground />
+return (
 
+
+<DashboardLayout>
+
+  <VideoBackground />
 
   <div
     className="
@@ -263,86 +263,58 @@ return ( <DashboardLayout> <VideoBackground />
       text-white
     "
   >
-    {/* Header */}
 
     <div
       className="
-        mb-6
         flex
         items-center
-        justify-between
+        justify-end
+        gap-3
+        mb-6
       "
     >
-      <div>
-        <h1
-          className="
-            text-2xl
-            font-semibold
-          "
-        >
-          AI 
-        </h1>
 
-        <p
-          className="
-            text-sm
-            text-white/60
-          "
-        >
-          Knowledge Workspace
-        </p>
-      </div>
-
-      <div
+      <button
+        onClick={
+          createNewChat
+        }
         className="
-          flex
-          items-center
-          gap-3
+          rounded-2xl
+          border
+          border-white/10
+          bg-white/[0.04]
+          px-4
+          py-2
+          backdrop-blur-xl
         "
       >
-        <button
-          onClick={
-            createNewChat
-          }
-          className="
-            rounded-xl
-            border
-            border-white/10
-            bg-white/[0.04]
-            px-4
-            py-2
-            backdrop-blur-xl
-          "
-        >
-          <div className="flex items-center gap-2">
-            <Plus size={16} />
-            New Chat
-          </div>
-        </button>
+        <div className="flex items-center gap-2">
+          <Plus size={16} />
+          New Chat
+        </div>
+      </button>
 
-        <button
-          onClick={
-            clearChat
-          }
-          className="
-            rounded-xl
-            border
-            border-white/10
-            bg-white/[0.04]
-            px-4
-            py-2
-            backdrop-blur-xl
-          "
-        >
-          <div className="flex items-center gap-2">
-            <Trash2 size={16} />
-            Clear
-          </div>
-        </button>
-      </div>
+      <button
+        onClick={
+          clearChat
+        }
+        className="
+          rounded-2xl
+          border
+          border-white/10
+          bg-white/[0.04]
+          px-4
+          py-2
+          backdrop-blur-xl
+        "
+      >
+        <div className="flex items-center gap-2">
+          <Trash2 size={16} />
+          Clear
+        </div>
+      </button>
+
     </div>
-
-    {/* Messages */}
 
     <main
       className="
@@ -350,122 +322,144 @@ return ( <DashboardLayout> <VideoBackground />
         overflow-y-auto
       "
     >
-      <div
-        className="
-          mx-auto
-          max-w-5xl
-          pb-10
-        "
-      >
+
+      {messages.length === 0 ? (
+
         <div
           className="
-            space-y-8
+            flex
+            h-full
+            flex-col
+            items-center
+            justify-center
+            text-center
           "
         >
-          {messages.map(
-            (
-              message
-            ) => (
-              <MessageBubble
-                key={
-                  message.id
-                }
-                message={
-                  message
-                }
-              />
-            )
-          )}
 
-          {loading && (
-            <div className="flex">
+          <h1
+            className="
+              text-5xl
+              font-bold
+              text-white
+            "
+          >
+            TruthLens AI
+          </h1>
+
+          <p
+            className="
+              mt-4
+              max-w-xl
+              text-white/60
+            "
+          >
+            Research, verify claims,
+            analyze documents and
+            chat with your knowledge base.
+          </p>
+
+        </div>
+
+      ) : (
+
+        <div
+          className="
+            mx-auto
+            max-w-5xl
+            pb-12
+          "
+        >
+
+          <div className="space-y-10">
+
+            {messages.map(
+              (
+                message
+              ) => (
+
+                <MessageBubble
+                  key={
+                    message.id
+                  }
+                  message={
+                    message
+                  }
+                />
+
+              )
+            )}
+
+            {loading && (
+
               <div
                 className="
-                  rounded-3xl
-                  border
-                  border-white/10
-                  bg-white/[0.04]
-                  px-5
-                  py-4
-                  backdrop-blur-xl
+                  text-white/60
+                  animate-pulse
                 "
               >
                 Thinking...
               </div>
-            </div>
-          )}
 
-          <div
-            ref={
-              bottomRef
-            }
-          />
+            )}
+
+            <div
+              ref={bottomRef}
+            />
+
+          </div>
+
         </div>
-      </div>
-    </main>
 
-    {/* Composer */}
+      )}
+
+    </main>
 
     <div
       className="
         sticky
         bottom-0
-        pt-4
+        pt-6
       "
     >
+
       <div
         className="
           mx-auto
           max-w-5xl
         "
       >
+
         <ChatComposer
           value={input}
-          loading={
-            loading
-          }
-          attachments={
-            attachments
-          }
-          onChange={
-            setInput
-          }
-          onSend={
-            sendMessage
-          }
-          onAttach={(
-            files
-          ) =>
+          loading={loading}
+          attachments={attachments}
+          onChange={setInput}
+          onSend={sendMessage}
+          onAttach={(files) =>
             setAttachments(
-              (
-                prev
-              ) => [
+              (prev) => [
                 ...prev,
                 ...files,
               ]
             )
           }
-          onRemoveAttachment={(
-            index
-          ) =>
+          onRemoveAttachment={(index) =>
             setAttachments(
-              (
-                prev
-              ) =>
+              (prev) =>
                 prev.filter(
-                  (
-                    _,
-                    i
-                  ) =>
-                    i !==
-                    index
+                  (_, i) =>
+                    i !== index
                 )
             )
           }
         />
+
       </div>
+
     </div>
+
   </div>
+
 </DashboardLayout>
 
 

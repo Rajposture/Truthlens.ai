@@ -23,13 +23,12 @@ def get_model():
                     "[EMBEDDER] Loading model..."
                 )
 
-                _model = (
-                    SentenceTransformer(
-                        "all-MiniLM-L6-v2"
-                    )
-                )
+                
+            _model = SentenceTransformer(
+    "all-MiniLM-L6-v2"
+)
 
-                print(
+            print(
                     "[EMBEDDER] Model loaded"
                 )
 
@@ -49,3 +48,4 @@ def generate_embedding(
     )
 
     return embedding.tolist()
+#hello

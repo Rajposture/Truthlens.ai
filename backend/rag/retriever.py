@@ -1,18 +1,19 @@
+import logging
+
 from core.config import settings
 
-from rag.embedder import (
-    generate_embedding
-)
+from rag.embedder import generate_embedding
+from rag.vector_store import get_collection
 
-from rag.vector_store import (
-    collection
-)
+logger = logging.getLogger(__name__)
+
+MIN_RELEVANCE_SCORE = 65
 
 
 def retrieve(
     query: str,
     k: int | None = None,
-    max_distance: float = 1.2
+    max_distance: float = 0.65,
 ):
 
     if k is None:
@@ -20,40 +21,27 @@ def retrieve(
 
     try:
 
-        query_embedding = (
-            generate_embedding(query)
+        query_embedding = generate_embedding(query)
+
+        results = get_collection().query(
+            query_embeddings=[query_embedding],
+            n_results=k,
         )
 
-        results = collection.query(
-            query_embeddings=[
-                query_embedding
-            ],
-            n_results=max(
-                k * 2,
-                10
-            )
-        )
+        documents = results.get(
+            "documents",
+            [[]]
+        )[0]
 
-        documents = (
-            results.get(
-                "documents",
-                [[]]
-            )[0]
-        )
+        metadatas = results.get(
+            "metadatas",
+            [[]]
+        )[0]
 
-        metadatas = (
-            results.get(
-                "metadatas",
-                [[]]
-            )[0]
-        )
-
-        distances = (
-            results.get(
-                "distances",
-                [[]]
-            )[0]
-        )
+        distances = results.get(
+            "distances",
+            [[]]
+        )[0]
 
         evidence = []
 
@@ -62,7 +50,7 @@ def retrieve(
         for doc, meta, distance in zip(
             documents,
             metadatas,
-            distances
+            distances,
         ):
 
             if distance is None:
@@ -71,62 +59,47 @@ def retrieve(
             if distance > max_distance:
                 continue
 
-            source = (
-                meta.get(
-                    "source",
-                    "unknown"
-                )
-                if meta
-                else "unknown"
+            score = round(
+                (1 - min(distance, 1)) * 100,
+                2,
             )
 
-            score = round(
-                (
-                    1 -
-                    min(distance, 1)
-                ) * 100,
-                2
+            if score < MIN_RELEVANCE_SCORE:
+                continue
+
+            source = (
+                meta.get("source", "unknown")
+                if meta
+                else "unknown"
             )
 
             evidence.append(
                 {
                     "content": doc,
                     "metadata": meta,
-                    "distance": float(
-                        distance
-                    ),
+                    "distance": float(distance),
                     "score": score,
-                    "source": source
+                    "source": source,
                 }
             )
 
         evidence.sort(
-            key=lambda x:
-            x["distance"]
+            key=lambda x: x["distance"]
         )
 
         diversified = []
 
         for item in evidence:
 
-            source = item["source"]
+            if item["source"] not in seen_sources:
 
-            if (
-                source
-                not in seen_sources
-            ):
-
-                diversified.append(
-                    item
-                )
+                diversified.append(item)
 
                 seen_sources.add(
-                    source
+                    item["source"]
                 )
 
-            if len(
-                diversified
-            ) >= k:
+            if len(diversified) >= k:
                 break
 
         if len(diversified) < k:
@@ -135,21 +108,22 @@ def retrieve(
 
                 if item not in diversified:
 
-                    diversified.append(
-                        item
-                    )
+                    diversified.append(item)
 
-                if len(
-                    diversified
-                ) >= k:
+                if len(diversified) >= k:
                     break
+
+        logger.info(
+            "Retrieved %d documents.",
+            len(diversified),
+        )
 
         return diversified
 
-    except Exception as e:
+    except Exception:
 
-        print(
-            f"[RETRIEVER ERROR] {e}"
+        logger.exception(
+            "Retriever failed."
         )
 
         return []

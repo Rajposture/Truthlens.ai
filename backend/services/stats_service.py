@@ -1,4 +1,4 @@
-from rag.vector_store import collection
+from rag.vector_store import get_collection
 
 
 class StatsService:
@@ -7,5 +7,5 @@ class StatsService:
     def get_stats():
 
         return {
-            "documents": collection.count()
+            "documents": get_collection().count()
         }

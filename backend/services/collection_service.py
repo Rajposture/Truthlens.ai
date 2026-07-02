@@ -1,7 +1,13 @@
+import logging
+
 from rag.vector_store import (
     client,
-    COLLECTION_NAME
+    get_collection,
 )
+
+from core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class CollectionService:
@@ -12,17 +18,26 @@ class CollectionService:
         try:
 
             client.delete_collection(
-                COLLECTION_NAME
+                settings.CHROMA_COLLECTION
+            )
+
+            logger.info(
+                "Deleted Chroma collection."
             )
 
         except Exception:
-            pass
 
-        client.get_or_create_collection(
-            name=COLLECTION_NAME
+            logger.warning(
+                "Collection did not exist."
+            )
+
+        get_collection()
+
+        logger.info(
+            "Created new Chroma collection."
         )
 
         return {
             "status": "success",
-            "message": "Knowledge base cleared"
+            "message": "Knowledge base cleared",
         }

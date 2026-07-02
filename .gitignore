@@ -16,3 +16,8 @@ yarn-error.log*
 lerna-debug.log*
 # Optional npm cache directory
 .env.local
+.env
+data/chroma_db
+data/chat_history
+__pycache__
+.venv

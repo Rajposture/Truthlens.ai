@@ -4,12 +4,13 @@ import time
 from pathlib import Path
 
 from services.retrieval_service import (
-RetrievalService
+    RetrievalService
 )
 
-from llm.ollama import (
-OllamaClient
+from llm.gemini import (
+    GeminiClient
 )
+
 
 class ChatService:
 
@@ -31,7 +32,7 @@ class ChatService:
         "good morning",
         "good evening",
         "ok",
-        "okay"
+        "okay",
     }
 
     MAX_MEMORY = 12
@@ -68,11 +69,13 @@ class ChatService:
                 encoding="utf-8"
             ) as f:
 
-                return json.load(
-                    f
-                )
+                return json.load(f)
 
-        except Exception:
+        except Exception as e:
+
+            print(
+                f"[LOAD SESSION ERROR] {e}"
+            )
 
             return []
 
@@ -87,17 +90,25 @@ class ChatService:
             session_id
         )
 
-        with open(
-            file,
-            "w",
-            encoding="utf-8"
-        ) as f:
+        try:
 
-            json.dump(
-                messages,
-                f,
-                ensure_ascii=False,
-                indent=2
+            with open(
+                file,
+                "w",
+                encoding="utf-8"
+            ) as f:
+
+                json.dump(
+                    messages,
+                    f,
+                    ensure_ascii=False,
+                    indent=2
+                )
+
+        except Exception as e:
+
+            print(
+                f"[SAVE SESSION ERROR] {e}"
             )
 
     @classmethod
@@ -166,12 +177,32 @@ class ChatService:
         ):
             return False
 
-        if len(
-            message.split()
-        ) < 4:
+        if len(message) < 15:
             return False
 
         return True
+
+    @classmethod
+    def generate_response(
+        cls,
+        prompt: str
+    ):
+
+        try:
+
+            return GeminiClient.generate(
+                prompt
+            )
+
+        except Exception as e:
+
+            print(
+                f"[CHAT ERROR] {e}"
+            )
+
+            return (
+                "TruthLens AI is temporarily unavailable. Please try again in a few moments."
+            )
 
     @classmethod
     def chat(
@@ -190,43 +221,48 @@ class ChatService:
             )
         )
 
-        if cls.should_use_rag(
-            message
-        ):
+        try:
 
-            retrieval_start = (
-                time.time()
-            )
+            if cls.should_use_rag(
+                message
+            ):
 
-            evidence = (
-                RetrievalService
-                .get_evidence(
-                    query=message,
-                    top_k=2,
-                    use_reranker=False
+                retrieval_start = (
+                    time.time()
                 )
-            )
 
-            print(
-                f"[TIME] Retrieval: "
-                f"{time.time() - retrieval_start:.2f}s"
-            )
+                evidence = (
+    RetrievalService
+    .get_evidence(
+        query=message,
+        top_k=3,
+        use_reranker=False
+    )
+)
 
-            context = "\n\n".join(
-                [
-                    item["content"][:300]
-                    for item in evidence
-                ]
-            )
+                print(
+                    f"[TIME] Retrieval: "
+                    f"{time.time() - retrieval_start:.2f}s"
+                )
 
-        prompt = f"""
-```
+                if evidence:
+
+                    context = "\n\n".join(
+                        [
+                            item["content"][:800]
+                            for item in evidence
+                        ]
+                    )
+
+            prompt = f"""
+
+You are TruthLens AI.
 
 Conversation History:
 
 {memory_context}
 
-Context:
+Retrieved Context:
 
 {context}
 
@@ -237,64 +273,79 @@ User Question:
 Instructions:
 
 * Answer naturally.
-* Be concise and direct.
-* Use markdown.
-* If context is useful, use it.
-* If context is irrelevant, ignore it.
-* Do not mention retrieval or knowledge base.
-* Do not repeat previous answers.
-  """
+* Use markdown formatting.
+* Use retrieved context only if relevant.
+* Ignore unrelated context.
+* Never invent facts.
+* If evidence is insufficient, say so.
+* Keep responses concise unless asked otherwise.
+* If the question is general knowledge, answer normally.
 
-        llm_start = time.time()
+"""
 
-        response = (
-            OllamaClient.generate(
-                prompt
-            )
-        )
+            llm_start = time.time()
 
-        print(
-            f"[TIME] LLM: "
-            f"{time.time() - llm_start:.2f}s"
-        )
-
-        cls.save_message(
-            session_id,
-            "user",
-            message
-        )
-
-        cls.save_message(
-            session_id,
-            "assistant",
-            response
-        )
-
-        sources = []
-
-        for item in evidence:
-
-            source = (
-                item.get(
-                    "metadata",
-                    {}
-                ).get(
-                    "source",
-                    "Unknown"
+            response = (
+                cls.generate_response(
+                    prompt
                 )
             )
 
-            if source not in sources:
+            print(
+                f"[TIME] LLM: "
+                f"{time.time() - llm_start:.2f}s"
+            )
 
-                sources.append(
-                    source
+            cls.save_message(
+                session_id,
+                "user",
+                message
+            )
+
+            cls.save_message(
+                session_id,
+                "assistant",
+                response
+            )
+
+            sources = []
+
+            for item in evidence:
+
+                source = (
+                    item.get(
+                        "metadata",
+                        {}
+                    ).get(
+                        "source",
+                        "Unknown"
+                    )
                 )
 
-        return {
-            "response": response,
-            "sources": sources,
-            "session_id": session_id
-        }
+                if source not in sources:
+
+                    sources.append(
+                        source
+                    )
+
+            return {
+                "response": response,
+                "sources": sources,
+                "session_id": session_id
+            }
+
+        except Exception as e:
+
+            print(
+                f"[CHAT ERROR] {e}"
+            )
+
+            return {
+                "response":
+                "Unable to generate a response.",
+                "sources": [],
+                "session_id": session_id
+            }
 
     @classmethod
     def clear_memory(

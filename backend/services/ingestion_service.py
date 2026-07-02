@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from rag.embedder import generate_embedding
-from rag.vector_store import collection
+from rag.vector_store import get_collection
 
 from services.pdf_service import (
     PDFService
@@ -135,7 +135,7 @@ class IngestionService:
 
         try:
 
-            collection.add(
+            get_collection().add(
                 ids=ids,
                 documents=documents[
                     : len(ids)
@@ -251,7 +251,7 @@ class IngestionService:
 
         try:
 
-            collection.add(
+            get_collection().add(
                 ids=ids,
                 documents=documents[
                     : len(ids)

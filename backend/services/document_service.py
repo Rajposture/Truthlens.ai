@@ -1,112 +1,113 @@
+import logging
 from pathlib import Path
 
-from services.ingestion_service import (
-    IngestionService
-)
+from core.config import settings
+from services.ingestion_service import IngestionService
+
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentService:
 
-    SUPPORTED_TYPES = [
+    SUPPORTED_TYPES = {
         ".pdf",
-        ".txt"
-    ]
+        ".txt",
+    }
 
     @staticmethod
-    def ingest_document(
-        file_path: str
-    ):
+    def ingest_document(file_path: str):
 
         path = Path(file_path)
 
         if not path.exists():
-
             raise FileNotFoundError(
                 f"File not found: {file_path}"
             )
 
-        suffix = (
-            path.suffix.lower()
-        )
+        suffix = path.suffix.lower()
 
-        if suffix not in (
-            DocumentService
-            .SUPPORTED_TYPES
-        ):
+        if suffix not in DocumentService.SUPPORTED_TYPES:
             raise ValueError(
                 f"Unsupported file type: {suffix}"
             )
 
-        print(
-            f"[INGEST] Processing: {path.name}"
+        if path.stat().st_size == 0:
+            raise ValueError(
+                "Uploaded file is empty."
+            )
+
+        if path.stat().st_size > settings.MAX_UPLOAD_SIZE:
+            raise ValueError(
+                "File exceeds maximum upload size."
+            )
+
+        logger.info(
+            "Processing document: %s",
+            path.name,
         )
 
         try:
 
-            if suffix == ".txt":
-
-                result = (
-                    IngestionService
-                    .ingest_txt(
-                        str(path)
-                    )
+            if suffix == ".pdf":
+                result = IngestionService.ingest_pdf(
+                    str(path)
                 )
 
-            elif suffix == ".pdf":
-
-                result = (
-                    IngestionService
-                    .ingest_pdf(
-                        str(path)
-                    )
+            else:
+                result = IngestionService.ingest_txt(
+                    str(path)
                 )
 
-            print(
-                f"[SUCCESS] {path.name}"
+            logger.info(
+                "Successfully ingested %s",
+                path.name,
             )
 
             return result
 
-        except Exception as e:
+        except Exception:
 
-            print(
-                f"[FAILED] {path.name}: {e}"
+            logger.exception(
+                "Failed to ingest %s",
+                path.name,
             )
 
             raise
 
     @staticmethod
-    def ingest_directory(
-        directory: str
-    ):
+    def ingest_directory(directory: str):
 
         path = Path(directory)
 
         if not path.exists():
-
             raise FileNotFoundError(
                 f"Directory not found: {directory}"
             )
 
-        results = []
-
         files = [
             f
             for f in path.iterdir()
-            if f.is_file()
+            if (
+                f.is_file()
+                and f.suffix.lower()
+                in DocumentService.SUPPORTED_TYPES
+            )
         ]
 
-        print(
-            f"[INFO] Found {len(files)} files"
+        logger.info(
+            "Found %d supported documents.",
+            len(files),
         )
+
+        results = []
 
         for file in files:
 
             try:
 
                 result = (
-                    DocumentService
-                    .ingest_document(
+                    DocumentService.ingest_document(
                         str(file)
                     )
                 )
@@ -115,7 +116,7 @@ class DocumentService:
                     {
                         "file": file.name,
                         "status": "success",
-                        "result": result
+                        "result": result,
                     }
                 )
 
@@ -125,11 +126,25 @@ class DocumentService:
                     {
                         "file": file.name,
                         "status": "failed",
-                        "error": str(e)
+                        "error": str(e),
                     }
                 )
 
         return {
             "processed": len(results),
-            "results": results
+            "successful": len(
+                [
+                    r
+                    for r in results
+                    if r["status"] == "success"
+                ]
+            ),
+            "failed": len(
+                [
+                    r
+                    for r in results
+                    if r["status"] == "failed"
+                ]
+            ),
+            "results": results,
         }
