@@ -21,3 +21,6 @@ data/chroma_db
 data/chat_history
 __pycache__
 .venv
+backend/data/chroma_db/
+backend/data/chat_history/
+backend/data/raw/uploads/
