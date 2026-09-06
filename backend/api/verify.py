@@ -1,28 +1,21 @@
-from fastapi import (
-APIRouter,
-Request
+from fastapi import APIRouter, Request
+
+from backend.models.claim import ClaimRequest
+
+from backend.services.verification_service import (
+    VerificationService
 )
 
-from models.claim import (
-ClaimRequest
-)
-
-from services.verification_service import (
-VerificationService
-)
 
 router = APIRouter()
+
 
 @router.post("/verify")
 def verify(
     request: Request,
-    payload: ClaimRequest
+    payload: ClaimRequest,
 ):
-    return (
-        VerificationService
-        .analyze(
-            claim=payload.claim,
-            user_id=None
-        )
+    return VerificationService.analyze(
+        claim=payload.claim,
+        user_id=None,
     )
-

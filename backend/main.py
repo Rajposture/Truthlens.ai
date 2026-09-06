@@ -1,153 +1,122 @@
+"""
+TruthLens AI - backend entrypoint.
+
+Run locally with:
+    uvicorn main:app --reload --port 8000
+
+Run in production with:
+    uvicorn main:app --host 0.0.0.0 --port $PORT
+"""
+from __future__ import annotations
+
 import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-
-from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-from slowapi.util import get_remote_address
 
-from core.config import settings
-
-from api.health import router as health_router
-from api.verify import router as verify_router
-from api.documents import router as documents_router
-from api.reports import router as reports_router
-from api.users import router as users_router
-from api.chat import router as chat_router
-
-
+from config import settings
+from knowledge_base import knowledge_base
+from rate_limit import limiter
+from routers import chat, documents, history, verify
 
 logging.basicConfig(
-    level=getattr(logging, settings.LOG_LEVEL.upper()),
-    format="%(asctime)s | %(levelname)s | %(message)s",
+    level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
 )
-
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("truthlens")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Starting TruthLens AI...")
+    stats = knowledge_base.stats()
+    logger.info("Starting %s (%s)", settings.APP_NAME, settings.ENVIRONMENT)
+    logger.info("Knowledge base ready: %s", stats)
+    if not settings.GROQ_API_KEY:
+        logger.warning(
+            "GROQ_API_KEY is not set - /api/verify and /api/chat will return a clear "
+            "error until you add one. Get a free key at https://console.groq.com/keys"
+        )
     yield
-    logger.info("Stopping TruthLens AI...")
-
-
-
-limiter = Limiter(key_func=get_remote_address)
-
+    logger.info("Shutting down %s", settings.APP_NAME)
 
 
 app = FastAPI(
     title=settings.APP_NAME,
-    version="1.0.0",
+    version="2.0.0",
+    description="Evidence-grounded fact verification and a retrieval-augmented AI assistant.",
     lifespan=lifespan,
 )
 
 app.state.limiter = limiter
 
-app.add_exception_handler(
-    RateLimitExceeded,
-    _rate_limit_exceeded_handler,
-)
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "You're sending requests a little too fast. Please slow down and try again."},
+    )
+
 
 app.add_middleware(SlowAPIMiddleware)
 
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        settings.FRONTEND_URL,
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://truthlens-ai-official.vercel.app/",
-    ],
+    allow_origins=settings.frontend_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-
-
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
-
     response = await call_next(request)
-
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-
     return response
 
 
-
 @app.exception_handler(Exception)
-async def global_exception_handler(
-    request: Request,
-    exc: Exception,
-):
-
-    logger.exception(exc)
-
-    return JSONResponse(
-        status_code=500,
-        content={
-            "success": False,
-            "message": "Internal Server Error",
-        },
-    )
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error."})
 
 
+app.include_router(verify.router)
+app.include_router(chat.router)
+app.include_router(documents.router)
+app.include_router(history.router)
 
-app.include_router(
-    health_router,
-    tags=["Health"],
-)
 
-app.include_router(
-    verify_router,
-    tags=["Verification"],
-)
-
-app.include_router(
-    documents_router,
-    tags=["Documents"],
-)
-
-app.include_router(
-    reports_router,
-    tags=["Reports"],
-)
-
-app.include_router(
-    users_router,
-    tags=["Users"],
-)
-
-app.include_router(
-    chat_router,
-    tags=["Chat"],
-)
+@app.get("/api/health")
+def health() -> dict:
+    return {
+        "status": "ok",
+        "service": settings.APP_NAME,
+        "groq_configured": bool(settings.GROQ_API_KEY),
+        "groq_model": settings.GROQ_MODEL,
+        "knowledge_base": knowledge_base.stats(),
+    }
 
 
 @app.get("/")
-async def root():
-
+def root() -> dict:
     return {
         "application": settings.APP_NAME,
-        "version": "1.0.0",
-        "status": "healthy",
-        "environment": settings.ENVIRONMENT,
-        "features": [
-            "Verification",
-            "Documents",
-            "Reports",
-            "Chat Assistant",
+        "status": "online",
+        "docs": "/docs",
+        "endpoints": [
+            "/api/verify",
+            "/api/chat",
+            "/api/chat/stream",
+            "/api/documents",
+            "/api/history",
+            "/api/health",
         ],
     }

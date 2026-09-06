@@ -1,7 +1,10 @@
-"use client";
+import type { Metadata } from "next";
+import { ChatPanel } from "@/components/chat/ChatPanel";
 
-import ChatPage from "@/components/chat/ChatPage";
+export const metadata: Metadata = {
+  title: "AI Assistant — TruthLens AI",
+};
 
-export default function Page() {
-  return <ChatPage />;
+export default function ChatPage() {
+  return <ChatPanel />;
 }
