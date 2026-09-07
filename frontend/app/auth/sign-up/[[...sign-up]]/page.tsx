@@ -5,7 +5,7 @@ import { SignUp } from "@clerk/nextjs";
 export default function Page() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-black">
-      <SignUp routing="hash" />
+      <SignUp routing="path" path="/sign-up" />
     </main>
   );
 }
