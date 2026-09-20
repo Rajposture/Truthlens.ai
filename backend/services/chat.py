@@ -6,8 +6,8 @@ from collections.abc import AsyncGenerator
 from pathlib import Path
 
 from config import settings
-from knowledge_base import knowledge_base
 from llm import GroqError, chat as llm_chat, chat_stream
+from retrieval import gather_evidence
 from storage import JSONStore
 from utils import now_iso, safe_id
 
@@ -47,21 +47,26 @@ class ChatService:
             return False
         return len(cleaned) >= 12
 
-    def _build_messages(self, session_id: str, message: str) -> tuple[list[dict], list[str]]:
+    async def _build_messages(self, session_id: str, message: str) -> tuple[list[dict], list[str]]:
         history = self._load(session_id)[-_MAX_TURNS_REMEMBERED * 2 :]
         sources: list[str] = []
 
         prompt_messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
         if self._should_use_kb(message):
-            evidence = knowledge_base.search(message, top_k=3)
+            evidence, used_web = await gather_evidence(message, top_k=3)
             if evidence:
                 sources = list(dict.fromkeys(item["source"] for item in evidence))
-                context = "\n\n".join(f"Source: {item['source']}\n{item['snippet']}" for item in evidence)
+                context = "\n\n".join(
+                    f"Source: {item['source']} "
+                    f"({'live web search' if item['source_type'] == 'web' else 'knowledge base'})\n{item['snippet']}"
+                    for item in evidence
+                )
+                label = "web search and knowledge base" if used_web else "knowledge base"
                 prompt_messages.append(
                     {
                         "role": "system",
-                        "content": f"Relevant context from the knowledge base:\n\n{context}",
+                        "content": f"Relevant context from the {label}:\n\n{context}",
                     }
                 )
 
@@ -72,7 +77,7 @@ class ChatService:
         return prompt_messages, sources
 
     async def respond(self, message: str, session_id: str) -> dict:
-        messages, sources = self._build_messages(session_id, message)
+        messages, sources = await self._build_messages(session_id, message)
         try:
             text = await llm_chat(messages, max_tokens=900, temperature=0.5)
         except GroqError as exc:
@@ -84,7 +89,7 @@ class ChatService:
         return {"response": text, "sources": sources, "session_id": session_id}
 
     async def respond_stream(self, message: str, session_id: str) -> AsyncGenerator[str, None]:
-        messages, sources = self._build_messages(session_id, message)
+        messages, sources = await self._build_messages(session_id, message)
         self._append(session_id, "user", message)
 
         collected: list[str] = []

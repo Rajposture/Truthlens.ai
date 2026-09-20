@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, RotateCcw, Zap, AlertCircle, ListChecks } from "lucide-react";
+import { Search, RotateCcw, Zap, AlertCircle, ListChecks, Globe } from "lucide-react";
 import { Button, Textarea } from "@/components/ui/primitives";
 import { ScanState } from "./ScanState";
 import { VerdictStamp } from "./VerdictStamp";
@@ -160,9 +160,17 @@ export function VerifyPanel() {
                 <ConfidenceGauge confidence={result.confidence} verdict={result.verdict} />
               </div>
 
-              <div className="mt-6 flex items-center gap-2 text-xs text-text-faint">
-                <Zap size={13} className="text-brass-400" />
-                Answered in {result.latency_ms}ms
+              <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-text-faint">
+                <span className="flex items-center gap-2">
+                  <Zap size={13} className="text-brass-400" />
+                  Answered in {result.latency_ms}ms
+                </span>
+                {result.used_web_search && (
+                  <span className="flex items-center gap-1.5 text-verified-400">
+                    <Globe size={13} />
+                    Includes live web search
+                  </span>
+                )}
               </div>
 
               <p className="mt-3 text-[15px] leading-relaxed text-text-primary">{result.reasoning}</p>

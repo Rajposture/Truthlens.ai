@@ -38,6 +38,32 @@ I also fixed a real bug from the original verification pipeline: it detected "qu
 with `claim.startswith(word)`, which misfires on claims like *"Israel is a country..."*
 (starts with "is"). The rewrite checks the actual first word instead.
 
+## Optional: live web search fallback
+
+By default TruthLens only checks its knowledge base (the seeded facts + whatever you've
+uploaded), which is fine for a demo but means it can't say anything useful about a claim
+outside that small set. Add a free [Tavily](https://tavily.com) API key
+(1,000 searches/month, no card) and TruthLens will automatically reach out to the live web
+whenever the local knowledge base doesn't have strong evidence for a claim — both on the
+Verify page and in the AI Assistant.
+
+It's purely additive: leave `TAVILY_API_KEY` blank and nothing changes from before.
+
+How the trigger works (`backend/retrieval.py`): local search always runs first. A local
+match only counts as "strong enough" to skip the web if it clears **both** a relevance bar
+and an absolute keyword-overlap check — the second check matters because BM25 relevance is
+normalized against the best match *in that search*, so a query with no good local matches
+at all could otherwise still show a misleadingly high score just for being the least-bad
+option. Only when local evidence is genuinely thin does it spend a Tavily credit.
+
+When a web result is used, the Verify page shows a "live web search" badge, and each web
+source in the evidence list is a clickable link out to the original page.
+
+```bash
+# backend/.env
+TAVILY_API_KEY=tvly-your-key-here
+```
+
 ### Design decisions worth knowing about
 
 - **No auth.** The original used Clerk. I dropped it to minimize required setup (no
@@ -200,6 +226,7 @@ also want to allow a custom domain). Redeploy the backend so CORS picks it up.
 | `FRONTEND_ORIGINS` | Recommended | `http://localhost:3000` | Comma-separated list of allowed origins (CORS) |
 | `RATE_LIMIT_VERIFY` / `RATE_LIMIT_CHAT` / `RATE_LIMIT_UPLOAD` | No | `20/minute` / `30/minute` / `10/minute` | Per-IP limits, protect your Groq quota |
 | `MAX_UPLOAD_MB` | No | `15` | Max document upload size |
+| `TAVILY_API_KEY` | No | — | Enables live web search fallback. Free at [tavily.com](https://tavily.com) |
 
 ### `frontend/.env.local`
 
@@ -244,7 +271,12 @@ I actually ran this, not just wrote it:
 - **Frontend:** `npm run build` and `npm run lint` both pass clean (0 errors, 0 warnings) on
   Next.js 16 / React 19 / Tailwind v4, and the production server serves all five routes
   with correct titles.
-- **What I couldn't test here:** the actual Groq responses (I don't have your API key) and
-  a real browser render (this sandbox has no GUI/browser). Both are standard,
-  well-trodden paths — but give the verdicts and chat replies a look once you're deployed,
-  the way you would with any new AI integration.
+- **Web search fallback:** confirmed the trigger logic correctly identifies weak/irrelevant
+  local matches (via the keyword-overlap check) and attempts a Tavily call at the right
+  moment, and confirmed the app degrades gracefully — falls back to local-only evidence
+  without crashing — when that call fails for any reason (bad key, network issue, etc).
+- **What I couldn't test here:** the actual Groq responses (I don't have your API key), a
+  real successful Tavily response (`api.tavily.com` isn't reachable from this sandbox), and
+  a real browser render (no GUI here). All three are standard, well-trodden paths — but
+  give the verdicts, chat replies, and web-search results a look once you're deployed with
+  real keys, the way you would with any new AI integration.

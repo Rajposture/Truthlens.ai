@@ -4,6 +4,8 @@ export interface Evidence {
   source: string;
   snippet: string;
   relevance: number;
+  source_type: "knowledge_base" | "web";
+  url: string | null;
 }
 
 export interface VerdictResult {
@@ -14,6 +16,7 @@ export interface VerdictResult {
   reasoning: string;
   key_points: string[];
   evidence: Evidence[];
+  used_web_search: boolean;
   created_at: string;
   latency_ms: number;
 }

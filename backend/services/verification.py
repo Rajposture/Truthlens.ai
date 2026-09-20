@@ -7,8 +7,8 @@ import time
 import uuid
 
 from config import settings
-from knowledge_base import knowledge_base
 from llm import GroqError, chat
+from retrieval import gather_evidence
 from schemas import Evidence, VerdictResponse
 from services.history import history_service
 from utils import now_iso
@@ -95,18 +95,20 @@ async def verify_claim(claim: str) -> VerdictResponse:
             latency_ms=int((time.perf_counter() - started) * 1000),
         )
 
-    evidence = knowledge_base.search(claim, top_k=settings.TOP_K_RESULTS)
+    evidence, used_web_search = await gather_evidence(claim, top_k=settings.TOP_K_RESULTS)
 
     if evidence:
         context = "\n\n".join(
-            f"[{i + 1}] Source: {item['source']}\n{item['snippet']}" for i, item in enumerate(evidence)
+            f"[{i + 1}] Source: {item['source']} "
+            f"({'live web search' if item['source_type'] == 'web' else 'knowledge base'})\n{item['snippet']}"
+            for i, item in enumerate(evidence)
         )
     else:
-        context = "No matching evidence was found in the knowledge base."
+        context = "No matching evidence was found in the knowledge base or the web."
 
     user_prompt = f"""Claim to verify: "{claim}"
 
-Evidence retrieved from the knowledge base:
+Evidence retrieved:
 {context}
 
 Return ONLY a JSON object with this exact shape:
@@ -139,6 +141,7 @@ Rules:
         reasoning=parsed["reasoning"],
         key_points=parsed["key_points"],
         evidence=[Evidence(**item) for item in evidence],
+        used_web_search=used_web_search,
         created_at=now_iso(),
         latency_ms=int((time.perf_counter() - started) * 1000),
     )

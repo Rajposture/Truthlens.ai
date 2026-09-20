@@ -18,6 +18,8 @@ class Evidence(BaseModel):
     source: str
     snippet: str
     relevance: float
+    source_type: Literal["knowledge_base", "web"] = "knowledge_base"
+    url: str | None = None
 
 
 class VerdictResponse(BaseModel):
@@ -28,6 +30,7 @@ class VerdictResponse(BaseModel):
     reasoning: str
     key_points: list[str] = Field(default_factory=list)
     evidence: list[Evidence] = Field(default_factory=list)
+    used_web_search: bool = False
     created_at: str
     latency_ms: int
 

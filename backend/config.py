@@ -42,6 +42,25 @@ class Settings(BaseSettings):
     CHUNK_SIZE: int = 900
     CHUNK_OVERLAP: int = 150
 
+    # --- Web search fallback (optional) ---
+    # When the local knowledge base doesn't have strong evidence for a claim,
+    # TruthLens can fall back to a live web search instead of guessing.
+    # Get a free key (1,000 searches/month, no card) at https://tavily.com
+    # Leave blank to disable - everything works exactly as before without it.
+    TAVILY_API_KEY: str = ""
+    WEB_SEARCH_MAX_RESULTS: int = 4
+    WEB_SEARCH_TIMEOUT_SECONDS: float = 12.0
+    # A local match below this relevance (%, relative to the best match found)
+    # doesn't count as "strong enough" on its own.
+    WEB_SEARCH_RELEVANCE_THRESHOLD: float = 40.0
+    # ...and it must ALSO share at least this fraction of the query's own words
+    # (an absolute signal, unlike relevance which is normalized per-search) -
+    # otherwise a search with no good matches at all could still look "strong"
+    # just because its best-of-a-bad-bunch result gets normalized near 100%.
+    WEB_SEARCH_MIN_KEYWORD_OVERLAP: float = 0.3
+    # Need at least this many strong local matches to skip the web fallback
+    WEB_SEARCH_MIN_STRONG_MATCHES: int = 2
+
     # --- Uploads ---
     MAX_UPLOAD_MB: int = 15
 

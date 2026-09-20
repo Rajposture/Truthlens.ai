@@ -161,6 +161,7 @@ class KnowledgeBase:
             tokens = tokenize(query)
             if not tokens:
                 return []
+            query_token_set = set(tokens)
             scores = self._bm25.get_scores(tokens)
             ranked = sorted(zip(self._chunks, scores), key=lambda pair: pair[1], reverse=True)
 
@@ -176,7 +177,23 @@ class KnowledgeBase:
             relevance = round(min(score / max_score, 1.0) * 100, 1)
             if relevance / 100 < settings.MIN_RELEVANCE_SCORE:
                 continue
-            results.append({"source": chunk.source, "snippet": chunk.text, "relevance": relevance})
+            # `relevance` above is normalized against the best match *in this result
+            # set*, so a query with no good matches at all can still show a top result
+            # near 100%. keyword_overlap is the absolute signal: what fraction of the
+            # query's own words actually appear in this chunk - used to decide whether
+            # local evidence is trustworthy enough to skip a web search fallback.
+            chunk_tokens = set(tokenize(chunk.text))
+            overlap = round(len(query_token_set & chunk_tokens) / len(query_token_set), 2)
+            results.append(
+                {
+                    "source": chunk.source,
+                    "snippet": chunk.text,
+                    "relevance": relevance,
+                    "source_type": "knowledge_base",
+                    "url": None,
+                    "keyword_overlap": overlap,
+                }
+            )
             seen_sources.add(chunk.source)
             if len(results) >= top_k:
                 break
