@@ -4,11 +4,12 @@ import { SignIn } from "@clerk/nextjs";
 
 export default function SignInPage() {
   return (
-    <main className="min-h-screen flex items-center justify-center bg-black">
+    <main className="flex min-h-screen items-center justify-center bg-ink-950 px-4">
       <SignIn
         routing="path"
-        path="/sign-in"
-        signUpUrl="/sign-up"
+        path="/auth/sign-in"
+        signUpUrl="/auth/sign-up"
+        fallbackRedirectUrl="/verify"
       />
     </main>
   );

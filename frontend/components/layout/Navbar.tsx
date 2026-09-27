@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
+import { Show, UserButton } from "@clerk/nextjs";
 import { ApertureMark } from "@/components/brand/ApertureMark";
 import { cn } from "@/lib/utils";
 
@@ -55,13 +56,24 @@ export function Navbar() {
           })}
         </nav>
 
-        <div className="hidden md:block">
+        <div className="hidden items-center gap-3 md:flex">
           <Link
             href="/verify"
             className="rounded-[var(--radius-md)] border border-brass-400 bg-brass-400 px-4 py-2 text-sm font-medium text-ink-950 transition-shadow hover:shadow-[0_0_24px_-4px_rgba(201,162,75,0.55)]"
           >
             Verify a claim
           </Link>
+          <Show when="signed-out">
+            <Link
+              href="/auth/sign-in"
+              className="rounded-[var(--radius-md)] border border-ink-700 px-3.5 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text-primary"
+            >
+              Sign in
+            </Link>
+          </Show>
+          <Show when="signed-in">
+            <UserButton />
+          </Show>
         </div>
 
         <button
@@ -98,6 +110,21 @@ export function Navbar() {
                   {link.label}
                 </Link>
               ))}
+              <Show when="signed-out">
+                <Link
+                  href="/auth/sign-in"
+                  onClick={() => setOpen(false)}
+                  className="rounded-[var(--radius-sm)] px-3 py-2.5 text-sm font-medium text-text-muted hover:bg-ink-800/60 hover:text-text-primary"
+                >
+                  Sign in
+                </Link>
+              </Show>
+              <Show when="signed-in">
+                <div className="flex items-center gap-2 px-3 py-2.5">
+                  <UserButton />
+                  <span className="text-sm text-text-muted">Account</span>
+                </div>
+              </Show>
             </div>
           </motion.nav>
         )}

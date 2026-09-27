@@ -158,22 +158,32 @@ export function getHealth() {
 
 
 /** Backward-compatible client facade for legacy components. */
+async function apiRequest(method: string, path: string, body?: unknown, config?: RequestInit) {
+  const headers = new Headers(config?.headers);
+  const init: RequestInit = { ...config, method, headers };
+
+  if (body instanceof FormData) {
+    init.body = body;
+    headers.delete("Content-Type");
+  } else if (body !== undefined) {
+    headers.set("Content-Type", "application/json");
+    init.body = JSON.stringify(body);
+  }
+
+  const response = await fetch(`${API_URL}/api${path.startsWith("/") ? path : `/${path}`}`, init);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(data?.detail || `Request failed (${response.status}).`);
+  return { data };
+}
+
 export const api = {
-  async post(path: string, body?: unknown, config?: RequestInit) {
-    const headers = new Headers(config?.headers);
-    let init: RequestInit = { ...config, method: "POST", headers };
-
-    if (body instanceof FormData) {
-      init.body = body;
-      headers.delete("Content-Type");
-    } else if (body !== undefined) {
-      headers.set("Content-Type", "application/json");
-      init.body = JSON.stringify(body);
-    }
-
-    const response = await fetch(`${API_URL}/api${path.startsWith("/") ? path : `/${path}`}`, init);
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new ApiError(data?.detail || `Request failed (${response.status}).`);
-    return { data };
+  get(path: string, config?: RequestInit) {
+    return apiRequest("GET", path, undefined, config);
+  },
+  post(path: string, body?: unknown, config?: RequestInit) {
+    return apiRequest("POST", path, body, config);
+  },
+  delete(path: string, config?: RequestInit) {
+    return apiRequest("DELETE", path, undefined, config);
   },
 };

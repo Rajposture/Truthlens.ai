@@ -21,7 +21,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from config import settings
 from knowledge_base import knowledge_base
 from rate_limit import limiter
-from routers import chat, documents, history, verify
+from routers import chat, documents, history, reports, users, verify
 
 logging.basicConfig(
     level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO),
@@ -98,6 +98,8 @@ app.include_router(verify.router)
 app.include_router(chat.router)
 app.include_router(documents.router)
 app.include_router(history.router)
+app.include_router(reports.router)
+app.include_router(users.router)
 
 
 @app.get("/api/health")
@@ -125,6 +127,8 @@ def root() -> dict:
             "/api/chat/stream",
             "/api/documents",
             "/api/history",
+            "/api/reports",
+            "/api/users",
             "/api/health",
         ],
     }
