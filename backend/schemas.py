@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 
 # ============================================================
-# USER SCHEMAS
+# USER
 # ============================================================
 
 class UserCreate(BaseModel):
@@ -13,7 +13,7 @@ class UserCreate(BaseModel):
 
 
 # ============================================================
-# CHAT SCHEMAS
+# CHAT
 # ============================================================
 
 class ChatRequest(BaseModel):
@@ -35,7 +35,7 @@ class ChatSessionSummary(BaseModel):
 
 
 # ============================================================
-# DOCUMENT SCHEMAS
+# DOCUMENTS
 # ============================================================
 
 class DocumentInfo(BaseModel):
@@ -53,7 +53,7 @@ class KnowledgeStats(BaseModel):
 
 
 # ============================================================
-# VERIFICATION SCHEMAS
+# VERIFICATION
 # ============================================================
 
 class ClaimRequest(BaseModel):
@@ -68,7 +68,7 @@ class VerdictResponse(BaseModel):
 
 
 # ============================================================
-# HISTORY SCHEMAS
+# HISTORY
 # ============================================================
 
 class HistoryClearResponse(BaseModel):

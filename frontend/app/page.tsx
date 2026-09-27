@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
-import { ChatPanel } from "@/components/chat/ChatPanel";
+"use client";
 
-export const metadata: Metadata = {
-  title: "AI Assistant — TruthLens AI",
-};
+import { SignUp } from "@clerk/nextjs";
 
-export default function ChatPage() {
-  return <ChatPanel />;
+export default function Page() {
+  return (
+    <main className="min-h-screen flex items-center justify-center bg-black">
+      <SignUp routing="path" path="/sign-up" />
+    </main>
+  );
 }

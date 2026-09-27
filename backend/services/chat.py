@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from collections.abc import AsyncGenerator
 from pathlib import Path
 
@@ -76,7 +77,8 @@ class ChatService:
 
         return prompt_messages, sources
 
-    async def respond(self, message: str, session_id: str) -> dict:
+    async def respond(self, message: str, session_id: str | None = None) -> dict:
+        session_id = session_id or uuid.uuid4().hex
         messages, sources = await self._build_messages(session_id, message)
         try:
             text = await llm_chat(messages, max_tokens=900, temperature=0.5)
@@ -88,7 +90,8 @@ class ChatService:
         self._append(session_id, "assistant", text, sources)
         return {"response": text, "sources": sources, "session_id": session_id}
 
-    async def respond_stream(self, message: str, session_id: str) -> AsyncGenerator[str, None]:
+    async def respond_stream(self, message: str, session_id: str | None = None) -> AsyncGenerator[str, None]:
+        session_id = session_id or uuid.uuid4().hex
         messages, sources = await self._build_messages(session_id, message)
         self._append(session_id, "user", message)
 
