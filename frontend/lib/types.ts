@@ -10,8 +10,14 @@ export interface Evidence {
 
 export interface MLPrediction {
   verdict: Verdict;
-  confidence: number;
+  confidence: number | null;
   probabilities: Record<string, number>;
+  confidence_level: "High" | "Medium" | "Low";
+  uncertain: boolean;
+  model?: string | null;
+  model_version?: string | null;
+  training_samples?: number | null;
+  adaptive_samples?: number;
 }
 
 export interface VerdictResult {

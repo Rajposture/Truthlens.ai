@@ -1,96 +1,76 @@
-"""Pydantic request/response models shared across routers."""
-from __future__ import annotations
-
-from typing import Literal
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-Verdict = Literal["True", "False", "Misleading", "Unverified"]
+
+# ============================================================
+# USER SCHEMAS
+# ============================================================
+
+class UserCreate(BaseModel):
+    clerk_id: str
+    email: str
 
 
-# ---------- Verification ----------
-
-class ClaimRequest(BaseModel):
-    claim: str = Field(..., min_length=1, max_length=2000)
-
-
-class Evidence(BaseModel):
-    source: str
-    snippet: str
-    relevance: float
-    source_type: Literal["knowledge_base", "web"] = "knowledge_base"
-    url: str | None = None
-
-
-class MLPrediction(BaseModel):
-    """Output of the offline-trained TF-IDF + classifier (see backend/ml_classifier.py),
-    trained on the LIAR dataset. Independent of the RAG + LLM verdict below - a second,
-    genuinely trained signal, not a duplicate of it."""
-
-    verdict: Verdict
-    confidence: float
-    probabilities: dict[str, float] = Field(default_factory=dict)
-
-
-class VerdictResponse(BaseModel):
-    id: str
-    claim: str
-    verdict: Verdict
-    confidence: int
-    reasoning: str
-    key_points: list[str] = Field(default_factory=list)
-    evidence: list[Evidence] = Field(default_factory=list)
-    used_web_search: bool = False
-    ml_prediction: MLPrediction | None = None
-    created_at: str
-    latency_ms: int
-
-
-# ---------- Chat ----------
+# ============================================================
+# CHAT SCHEMAS
+# ============================================================
 
 class ChatRequest(BaseModel):
-    message: str = Field(..., min_length=1, max_length=4000)
-    session_id: str = Field(..., min_length=1, max_length=128)
-
-
-class ChatMessage(BaseModel):
-    role: Literal["user", "assistant"]
-    content: str
-    sources: list[str] = Field(default_factory=list)
-    created_at: str
+    message: str = Field(..., min_length=1)
+    session_id: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
     response: str
-    sources: list[str] = Field(default_factory=list)
-    session_id: str
+    session_id: Optional[str] = None
+    sources: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class ChatSessionSummary(BaseModel):
     session_id: str
-    title: str
-    updated_at: str
-    message_count: int
+    title: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
 
 
-# ---------- Documents / knowledge base ----------
+# ============================================================
+# DOCUMENT SCHEMAS
+# ============================================================
 
 class DocumentInfo(BaseModel):
-    id: str
+    id: Optional[str] = None
     filename: str
-    chunks: int
-    size_kb: float
-    uploaded_at: str
+    file_type: Optional[str] = None
+    size: Optional[int] = None
+    chunks: Optional[int] = None
+    status: Optional[str] = None
 
 
 class KnowledgeStats(BaseModel):
-    documents: int
-    chunks: int
-    seeded: bool
+    total_documents: int = 0
+    total_chunks: int = 0
 
 
-# ---------- History ----------
+# ============================================================
+# VERIFICATION SCHEMAS
+# ============================================================
+
+class ClaimRequest(BaseModel):
+    claim: str = Field(..., min_length=1)
+
+
+class VerdictResponse(BaseModel):
+    verdict: str
+    confidence: Optional[float] = None
+    explanation: Optional[str] = None
+    evidence: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+# ============================================================
+# HISTORY SCHEMAS
+# ============================================================
 
 class HistoryClearResponse(BaseModel):
-    status: str
+    success: bool
     message: str

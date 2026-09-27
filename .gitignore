@@ -12,3 +12,6 @@ backend/data/uploads/
 backend/data/chat_sessions/
 .DS_Store
 *.tsbuildinfo
+
+# Runtime adaptive ML artifacts
+backend/data/ml_runtime/

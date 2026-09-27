@@ -155,3 +155,25 @@ export function clearHistory() {
 export function getHealth() {
   return request<HealthStatus>("/api/health");
 }
+
+
+/** Backward-compatible client facade for legacy components. */
+export const api = {
+  async post(path: string, body?: unknown, config?: RequestInit) {
+    const headers = new Headers(config?.headers);
+    let init: RequestInit = { ...config, method: "POST", headers };
+
+    if (body instanceof FormData) {
+      init.body = body;
+      headers.delete("Content-Type");
+    } else if (body !== undefined) {
+      headers.set("Content-Type", "application/json");
+      init.body = JSON.stringify(body);
+    }
+
+    const response = await fetch(`${API_URL}/api${path.startsWith("/") ? path : `/${path}`}`, init);
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new ApiError(data?.detail || `Request failed (${response.status}).`);
+    return { data };
+  },
+};

@@ -151,7 +151,7 @@ export function KnowledgePanel() {
           <div className="rounded-[var(--radius-md)] border border-dashed border-ink-700 px-4 py-8 text-center">
             <Database size={22} className="mx-auto text-ink-600" />
             <p className="mt-2 text-sm text-text-faint">
-              No documents uploaded yet. TruthLens is still running on its starter reference facts.
+              No documents uploaded yet. The starter reference set is available for quick demonstrations.
             </p>
           </div>
         ) : (

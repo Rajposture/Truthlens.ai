@@ -317,3 +317,18 @@ I actually ran this, not just wrote it:
   a real browser render (no GUI here). All three are standard, well-trodden paths — but
   give the verdicts, chat replies, and web-search results a look once you're deployed with
   real keys, the way you would with any new AI integration.
+
+
+## Evidence-first adaptive ML architecture
+
+The live verification path is deliberately evidence-first:
+
+1. A user submits a claim.
+2. TruthLens searches the local BM25 knowledge base.
+3. If configured and local evidence is weak, it calls Tavily for live web evidence.
+4. Groq compares the claim against the retrieved evidence and emits True / False / Misleading / Unverified.
+5. The trained classifier runs as an independent signal.
+6. Only **high-confidence, evidence-backed** final verdicts are eligible to become adaptive training samples.
+7. The learner periodically retrains a TF-IDF + Logistic Regression model from accumulated verified samples, and keeps the runtime model on disk.
+
+This is intentionally not "send every user claim to the training set." Doing that would create self-labeling feedback loops and make model errors reinforce themselves. The adaptive learner therefore requires evidence and a configurable confidence threshold. For the strongest academic demonstration, collect a curated evaluation set of new claims and compare the baseline model with the adapted model on a held-out set that is never used for training.
