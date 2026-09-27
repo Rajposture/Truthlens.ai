@@ -1,15 +1,13 @@
 """
-Async client for Groq's OpenAI-compatible chat completions API.
+LLM client supporting two providers behind one interface: chat() and chat_stream().
 
-Groq runs open models (we default to `openai/gpt-oss-120b`) on custom LPU
-hardware, which is why responses stream back noticeably faster than most
-GPU-hosted APIs — this is the whole reason TruthLens feels instant. Get a
-free key in seconds at https://console.groq.com/keys and set GROQ_API_KEY.
+- "groq"   -> cloud, works anywhere (including Railway/Vercel deployment). Needs GROQ_API_KEY.
+- "ollama" -> local model on your own machine (e.g. Phi-3). Needs Ollama running at
+              OLLAMA_BASE_URL. This CANNOT be reached from Railway/Vercel unless Ollama
+              is itself deployed and reachable from there - use this for local dev/demo,
+              and switch LLM_PROVIDER back to "groq" for the deployed version.
 
-Both `openai/gpt-oss-120b` and `openai/gpt-oss-20b` are reasoning models:
-by default they think before answering and return that chain-of-thought in
-a separate `reasoning` field. We turn that off (`include_reasoning: False`)
-so `content` is always the clean final answer.
+Switch providers with the LLM_PROVIDER env var - no other code changes needed.
 """
 from __future__ import annotations
 
@@ -25,10 +23,15 @@ logger = logging.getLogger("truthlens.llm")
 
 
 class GroqError(RuntimeError):
-    """Raised whenever the LLM can't produce a usable answer."""
+    """Raised whenever the LLM can't produce a usable answer. Name kept for
+    backward compatibility with existing call sites; it now covers both providers."""
 
 
-def _require_api_key() -> None:
+# ---------------------------------------------------------------------------
+# Groq (cloud)
+# ---------------------------------------------------------------------------
+
+def _require_groq_key() -> None:
     if not settings.GROQ_API_KEY:
         raise GroqError(
             "GROQ_API_KEY is not set. Add a free key from "
@@ -36,7 +39,7 @@ def _require_api_key() -> None:
         )
 
 
-def _payload(
+def _groq_payload(
     messages: list[dict],
     *,
     stream: bool,
@@ -60,34 +63,29 @@ def _payload(
     return payload
 
 
-async def chat(
+async def _groq_chat(
     messages: list[dict],
     *,
-    json_mode: bool = False,
-    reasoning_effort: str | None = None,
-    max_tokens: int = 1024,
-    temperature: float = 0.4,
+    json_mode: bool,
+    reasoning_effort: str | None,
+    max_tokens: int,
+    temperature: float,
 ) -> str:
-    """Single-shot (non-streaming) completion. Returns the final answer text."""
-    _require_api_key()
+    _require_groq_key()
 
     url = f"{settings.GROQ_BASE_URL}/chat/completions"
     headers = {
         "Authorization": f"Bearer {settings.GROQ_API_KEY}",
         "Content-Type": "application/json",
     }
-    body = _payload(
-        messages,
-        stream=False,
-        json_mode=json_mode,
-        reasoning_effort=reasoning_effort,
-        max_tokens=max_tokens,
-        temperature=temperature,
+    body = _groq_payload(
+        messages, stream=False, json_mode=json_mode, reasoning_effort=reasoning_effort,
+        max_tokens=max_tokens, temperature=temperature,
     )
 
     last_error: Exception | None = None
     async with httpx.AsyncClient(timeout=settings.GROQ_TIMEOUT_SECONDS) as client:
-        for attempt in range(2):
+        for _ in range(2):
             try:
                 response = await client.post(url, headers=headers, json=body)
                 response.raise_for_status()
@@ -97,46 +95,34 @@ async def chat(
                     raise GroqError("The model returned an empty response.")
                 return content.strip()
             except httpx.HTTPStatusError as exc:
-                detail = exc.response.text[:300]
-                logger.warning("Groq HTTP %s: %s", exc.response.status_code, detail)
+                logger.warning("Groq HTTP %s: %s", exc.response.status_code, exc.response.text[:300])
                 if exc.response.status_code in (401, 403):
                     raise GroqError(
                         "Groq rejected the API key. Double-check GROQ_API_KEY in your .env."
                     ) from exc
                 if exc.response.status_code == 429:
-                    raise GroqError(
-                        "Groq rate limit reached. Wait a few seconds and try again."
-                    ) from exc
+                    raise GroqError("Groq rate limit reached. Wait a few seconds and try again.") from exc
                 last_error = exc
             except (httpx.TimeoutException, httpx.RequestError) as exc:
-                logger.warning("Groq request failed (attempt %d): %s", attempt + 1, exc)
+                logger.warning("Groq request failed: %s", exc)
                 last_error = exc
 
     raise GroqError("TruthLens's AI engine is temporarily unavailable. Please try again.") from last_error
 
 
-async def chat_stream(
-    messages: list[dict],
-    *,
-    reasoning_effort: str | None = None,
-    max_tokens: int = 1024,
-    temperature: float = 0.5,
+async def _groq_chat_stream(
+    messages: list[dict], *, reasoning_effort: str | None, max_tokens: int, temperature: float,
 ) -> AsyncGenerator[str, None]:
-    """Yields response text incrementally as it's generated."""
-    _require_api_key()
+    _require_groq_key()
 
     url = f"{settings.GROQ_BASE_URL}/chat/completions"
     headers = {
         "Authorization": f"Bearer {settings.GROQ_API_KEY}",
         "Content-Type": "application/json",
     }
-    body = _payload(
-        messages,
-        stream=True,
-        json_mode=False,
-        reasoning_effort=reasoning_effort,
-        max_tokens=max_tokens,
-        temperature=temperature,
+    body = _groq_payload(
+        messages, stream=True, json_mode=False, reasoning_effort=reasoning_effort,
+        max_tokens=max_tokens, temperature=temperature,
     )
 
     async with httpx.AsyncClient(timeout=settings.GROQ_TIMEOUT_SECONDS) as client:
@@ -164,3 +150,122 @@ async def chat_stream(
         except (httpx.TimeoutException, httpx.RequestError) as exc:
             logger.warning("Groq stream request failed: %s", exc)
             raise GroqError("TruthLens's AI engine is temporarily unavailable. Please try again.") from exc
+
+
+# ---------------------------------------------------------------------------
+# Ollama (local)
+# ---------------------------------------------------------------------------
+
+async def _ollama_chat(messages: list[dict], *, json_mode: bool, max_tokens: int, temperature: float) -> str:
+    url = f"{settings.OLLAMA_BASE_URL}/api/chat"
+    body: dict = {
+        "model": settings.OLLAMA_MODEL,
+        "messages": messages,
+        "stream": False,
+        "options": {"temperature": temperature, "num_predict": max_tokens},
+    }
+    if json_mode:
+        body["format"] = "json"
+
+    try:
+        async with httpx.AsyncClient(timeout=settings.OLLAMA_TIMEOUT_SECONDS) as client:
+            response = await client.post(url, json=body)
+            response.raise_for_status()
+            data = response.json()
+    except httpx.HTTPStatusError as exc:
+        logger.warning("Ollama HTTP %s: %s", exc.response.status_code, exc.response.text[:300])
+        raise GroqError(
+            f"Ollama returned an error. Is the '{settings.OLLAMA_MODEL}' model pulled? "
+            f"Run: ollama pull {settings.OLLAMA_MODEL}"
+        ) from exc
+    except (httpx.TimeoutException, httpx.RequestError) as exc:
+        logger.warning("Ollama request failed: %s", exc)
+        raise GroqError(
+            f"Can't reach Ollama at {settings.OLLAMA_BASE_URL}. Is `ollama serve` running locally? "
+            "(Note: Ollama only works when running TruthLens locally, not on Railway/Vercel - "
+            "set LLM_PROVIDER=groq for the deployed version.)"
+        ) from exc
+
+    content = data.get("message", {}).get("content", "")
+    if not content.strip():
+        raise GroqError("Ollama returned an empty response.")
+    return content.strip()
+
+
+async def _ollama_chat_stream(
+    messages: list[dict], *, max_tokens: int, temperature: float,
+) -> AsyncGenerator[str, None]:
+    url = f"{settings.OLLAMA_BASE_URL}/api/chat"
+    body = {
+        "model": settings.OLLAMA_MODEL,
+        "messages": messages,
+        "stream": True,
+        "options": {"temperature": temperature, "num_predict": max_tokens},
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=settings.OLLAMA_TIMEOUT_SECONDS) as client:
+            async with client.stream("POST", url, json=body) as response:
+                if response.status_code != 200:
+                    error_bytes = await response.aread()
+                    logger.warning("Ollama stream HTTP %s: %s", response.status_code, error_bytes[:300])
+                    raise GroqError(
+                        f"Ollama returned an error. Is the '{settings.OLLAMA_MODEL}' model pulled?"
+                    )
+                async for line in response.aiter_lines():
+                    if not line:
+                        continue
+                    try:
+                        chunk = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    text = chunk.get("message", {}).get("content")
+                    if text:
+                        yield text
+                    if chunk.get("done"):
+                        break
+    except (httpx.TimeoutException, httpx.RequestError) as exc:
+        logger.warning("Ollama stream request failed: %s", exc)
+        raise GroqError(
+            f"Can't reach Ollama at {settings.OLLAMA_BASE_URL}. Is `ollama serve` running locally?"
+        ) from exc
+
+
+# ---------------------------------------------------------------------------
+# Public interface - unchanged signatures, dispatches by provider
+# ---------------------------------------------------------------------------
+
+async def chat(
+    messages: list[dict],
+    *,
+    json_mode: bool = False,
+    reasoning_effort: str | None = None,
+    max_tokens: int = 1024,
+    temperature: float = 0.4,
+) -> str:
+    """Single-shot (non-streaming) completion. Returns the final answer text."""
+    if settings.LLM_PROVIDER == "ollama":
+        return await _ollama_chat(messages, json_mode=json_mode, max_tokens=max_tokens, temperature=temperature)
+    return await _groq_chat(
+        messages, json_mode=json_mode, reasoning_effort=reasoning_effort,
+        max_tokens=max_tokens, temperature=temperature,
+    )
+
+
+async def chat_stream(
+    messages: list[dict],
+    *,
+    reasoning_effort: str | None = None,
+    max_tokens: int = 1024,
+    temperature: float = 0.5,
+) -> AsyncGenerator[str, None]:
+    """Yields response text incrementally as it's generated."""
+    if settings.LLM_PROVIDER == "ollama":
+        async for chunk in _ollama_chat_stream(messages, max_tokens=max_tokens, temperature=temperature):
+            yield chunk
+        return
+
+    async for chunk in _groq_chat_stream(
+        messages, reasoning_effort=reasoning_effort, max_tokens=max_tokens, temperature=temperature
+    ):
+        yield chunk

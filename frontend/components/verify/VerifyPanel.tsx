@@ -8,6 +8,7 @@ import { ScanState } from "./ScanState";
 import { VerdictStamp } from "./VerdictStamp";
 import { ConfidenceGauge } from "./ConfidenceGauge";
 import { EvidenceList } from "./EvidenceList";
+import { MLSignal } from "./MLSignal";
 import { verifyClaim, ApiError } from "@/lib/api";
 import type { VerdictResult } from "@/lib/types";
 
@@ -192,6 +193,15 @@ export function VerifyPanel() {
                 </p>
                 <EvidenceList evidence={result.evidence} />
               </div>
+
+              {result.ml_prediction && (
+                <div className="mt-6">
+                  <p className="mb-3 font-display text-xs font-semibold uppercase tracking-wider text-text-faint">
+                    Second opinion
+                  </p>
+                  <MLSignal prediction={result.ml_prediction} />
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

@@ -2,16 +2,20 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import time
 import uuid
 
 from config import settings
 from llm import GroqError, chat
+from ml_classifier import verdict_classifier
 from retrieval import gather_evidence
-from schemas import Evidence, VerdictResponse
+from schemas import Evidence, MLPrediction, VerdictResponse
 from services.history import history_service
 from utils import now_iso
+
+logger = logging.getLogger("truthlens.verification")
 
 SYSTEM_PROMPT = """You are the verification engine inside TruthLens AI, a fact-checking assistant.
 Judge claims strictly using the evidence you are given below - never your own outside assumptions.
@@ -133,6 +137,12 @@ Rules:
     except GroqError as exc:
         parsed = {"verdict": "Unverified", "confidence": 0, "reasoning": str(exc), "key_points": []}
 
+    ml_result = None
+    try:
+        ml_result = verdict_classifier.predict(claim)
+    except Exception:  # the trained-model signal is a bonus; never let it break verification
+        logger.exception("ML classifier prediction failed")
+
     result = VerdictResponse(
         id=uuid.uuid4().hex[:10],
         claim=claim,
@@ -142,6 +152,7 @@ Rules:
         key_points=parsed["key_points"],
         evidence=[Evidence(**item) for item in evidence],
         used_web_search=used_web_search,
+        ml_prediction=MLPrediction(**ml_result) if ml_result else None,
         created_at=now_iso(),
         latency_ms=int((time.perf_counter() - started) * 1000),
     )

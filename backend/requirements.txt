@@ -8,3 +8,5 @@ rank-bm25==0.2.2
 pypdf==5.7.0
 python-multipart==0.0.20
 slowapi==0.1.9
+scikit-learn==1.8.0
+joblib==1.5.2

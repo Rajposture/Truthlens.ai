@@ -25,7 +25,14 @@ class Settings(BaseSettings):
     # "https://truthlens.vercel.app,https://www.truthlens.app"
     FRONTEND_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
 
-    # --- Groq (LLM provider) ---
+    # --- LLM provider ---
+    # "groq"   = cloud, works when deployed (Railway/Vercel). Needs GROQ_API_KEY.
+    # "ollama" = your local model (e.g. Phi-3). Only reachable when TruthLens itself
+    #            is running on the same machine as `ollama serve` - i.e. local dev only.
+    #            Set this back to "groq" before/when deploying to Railway.
+    LLM_PROVIDER: str = "groq"
+
+    # --- Groq (cloud) ---
     # Get a free key at https://console.groq.com/keys
     GROQ_API_KEY: str = ""
     # openai/gpt-oss-120b = best quality, still extremely fast on Groq's LPUs.
@@ -35,6 +42,11 @@ class Settings(BaseSettings):
     # low | medium | high — lower effort answers faster, higher effort reasons harder.
     GROQ_REASONING_EFFORT: str = "low"
     GROQ_TIMEOUT_SECONDS: float = 30.0
+
+    # --- Ollama (local) ---
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_MODEL: str = "phi3"
+    OLLAMA_TIMEOUT_SECONDS: float = 60.0
 
     # --- Retrieval / knowledge base ---
     TOP_K_RESULTS: int = 4

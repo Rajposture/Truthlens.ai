@@ -35,10 +35,16 @@ async def lifespan(app: FastAPI):
     stats = knowledge_base.stats()
     logger.info("Starting %s (%s)", settings.APP_NAME, settings.ENVIRONMENT)
     logger.info("Knowledge base ready: %s", stats)
-    if not settings.GROQ_API_KEY:
+    if settings.LLM_PROVIDER == "groq" and not settings.GROQ_API_KEY:
         logger.warning(
-            "GROQ_API_KEY is not set - /api/verify and /api/chat will return a clear "
-            "error until you add one. Get a free key at https://console.groq.com/keys"
+            "LLM_PROVIDER=groq but GROQ_API_KEY is not set - /api/verify and /api/chat will "
+            "return a clear error until you add one. Get a free key at https://console.groq.com/keys"
+        )
+    elif settings.LLM_PROVIDER == "ollama":
+        logger.info(
+            "LLM_PROVIDER=ollama - expecting `ollama serve` at %s with model '%s'. "
+            "This only works for local runs; deployed hosting needs LLM_PROVIDER=groq.",
+            settings.OLLAMA_BASE_URL, settings.OLLAMA_MODEL,
         )
     yield
     logger.info("Shutting down %s", settings.APP_NAME)
@@ -99,8 +105,10 @@ def health() -> dict:
     return {
         "status": "ok",
         "service": settings.APP_NAME,
+        "llm_provider": settings.LLM_PROVIDER,
         "groq_configured": bool(settings.GROQ_API_KEY),
         "groq_model": settings.GROQ_MODEL,
+        "ollama_model": settings.OLLAMA_MODEL if settings.LLM_PROVIDER == "ollama" else None,
         "knowledge_base": knowledge_base.stats(),
     }
 

@@ -1,0 +1,14 @@
+{
+  "winner": "Logistic Regression",
+  "labels": [
+    "True",
+    "False",
+    "Misleading"
+  ],
+  "metrics": {
+    "accuracy": 0.4230465666929755,
+    "macro_precision": 0.4206913202898995,
+    "macro_recall": 0.4241269604455802,
+    "macro_f1": 0.42137476211667413
+  }
+}

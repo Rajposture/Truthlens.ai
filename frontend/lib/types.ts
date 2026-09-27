@@ -8,6 +8,12 @@ export interface Evidence {
   url: string | null;
 }
 
+export interface MLPrediction {
+  verdict: Verdict;
+  confidence: number;
+  probabilities: Record<string, number>;
+}
+
 export interface VerdictResult {
   id: string;
   claim: string;
@@ -17,6 +23,7 @@ export interface VerdictResult {
   key_points: string[];
   evidence: Evidence[];
   used_web_search: boolean;
+  ml_prediction: MLPrediction | null;
   created_at: string;
   latency_ms: number;
 }
@@ -51,7 +58,9 @@ export interface KnowledgeStats {
 
 export interface HealthStatus {
   status: string;
+  llm_provider: string;
   groq_configured: boolean;
   groq_model: string;
+  ollama_model: string | null;
   knowledge_base: KnowledgeStats;
 }

@@ -22,6 +22,16 @@ class Evidence(BaseModel):
     url: str | None = None
 
 
+class MLPrediction(BaseModel):
+    """Output of the offline-trained TF-IDF + classifier (see backend/ml_classifier.py),
+    trained on the LIAR dataset. Independent of the RAG + LLM verdict below - a second,
+    genuinely trained signal, not a duplicate of it."""
+
+    verdict: Verdict
+    confidence: float
+    probabilities: dict[str, float] = Field(default_factory=dict)
+
+
 class VerdictResponse(BaseModel):
     id: str
     claim: str
@@ -31,6 +41,7 @@ class VerdictResponse(BaseModel):
     key_points: list[str] = Field(default_factory=list)
     evidence: list[Evidence] = Field(default_factory=list)
     used_web_search: bool = False
+    ml_prediction: MLPrediction | None = None
     created_at: str
     latency_ms: int
 

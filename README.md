@@ -38,6 +38,42 @@ I also fixed a real bug from the original verification pipeline: it detected "qu
 with `claim.startswith(word)`, which misfires on claims like *"Israel is a country..."*
 (starts with "is"). The rewrite checks the actual first word instead.
 
+## LLM provider: Groq (cloud) or Ollama (local)
+
+`backend/llm.py` supports two interchangeable providers, switched with one env var:
+
+```bash
+LLM_PROVIDER=groq     # cloud - works everywhere, including when deployed
+LLM_PROVIDER=ollama   # your local model (e.g. Phi-3) - local dev/demo only
+```
+
+**Ollama cannot be reached from Railway or Vercel** — it's a process running on your own
+machine, and those platforms have no way to connect to `localhost:11434` on your laptop.
+Use `LLM_PROVIDER=ollama` when running TruthLens locally (e.g. to demo local-model
+inference), and set `LLM_PROVIDER=groq` in Railway's environment variables for the
+deployed version. Everything else about the app - retrieval, prompts, verdict format - is
+identical either way; only which model answers changes.
+
+```bash
+# Local Ollama setup
+ollama serve
+ollama pull phi3
+# then in backend/.env:
+LLM_PROVIDER=ollama
+OLLAMA_MODEL=phi3
+```
+
+## Trained ML component: claim-veracity classifier
+
+Alongside the RAG + LLM pipeline, `/api/verify` also runs a TF-IDF + Logistic
+Regression classifier trained on the LIAR dataset (12.8K labeled political
+statements, the standard academic benchmark for this task) — a genuinely
+trained, genuinely evaluated model, shown as an independent "second opinion"
+next to the AI verdict rather than blended into it. Full methodology, metrics,
+confusion matrices, and neural-network training curves are in
+`TruthLens_ML_Training_Report.docx` at the project root; the training code
+that produced it is in `ml_train/`.
+
 ## Optional: live web search fallback
 
 By default TruthLens only checks its knowledge base (the seeded facts + whatever you've
@@ -220,7 +256,8 @@ also want to allow a custom domain). Redeploy the backend so CORS picks it up.
 
 | Variable | Required | Default | Notes |
 |---|---|---|---|
-| `GROQ_API_KEY` | **Yes** | — | Free at [console.groq.com/keys](https://console.groq.com/keys) |
+| `GROQ_API_KEY` | Yes, if `LLM_PROVIDER=groq` | — | Free at [console.groq.com/keys](https://console.groq.com/keys) |
+| `LLM_PROVIDER` | No | `groq` | `groq` (deployable) or `ollama` (local-only, see above) |
 | `GROQ_MODEL` | No | `openai/gpt-oss-120b` | `openai/gpt-oss-20b` is smaller/faster if you want to trade a little quality for speed |
 | `GROQ_REASONING_EFFORT` | No | `low` | `low` / `medium` / `high` — higher reasons more carefully, a bit slower |
 | `FRONTEND_ORIGINS` | Recommended | `http://localhost:3000` | Comma-separated list of allowed origins (CORS) |

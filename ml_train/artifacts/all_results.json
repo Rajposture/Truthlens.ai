@@ -1,0 +1,58 @@
+{
+  "six_way": {
+    "Naive Bayes": {
+      "accuracy": 0.24230465666929754,
+      "macro_precision": 0.2052489185003685,
+      "macro_recall": 0.2077011561977202,
+      "macro_f1": 0.18939962403613364,
+      "train_seconds": 0.02
+    },
+    "Logistic Regression": {
+      "accuracy": 0.23993685872138912,
+      "macro_precision": 0.23585206751310694,
+      "macro_recall": 0.2414334393241272,
+      "macro_f1": 0.2363832680106437,
+      "train_seconds": 0.96
+    },
+    "Linear SVM": {
+      "accuracy": 0.23835832675611682,
+      "macro_precision": 0.23379270707718314,
+      "macro_recall": 0.23843741076509162,
+      "macro_f1": 0.23465120184395896,
+      "train_seconds": 0.13
+    },
+    "Neural Net (MLP)": {
+      "accuracy": 0.2296764009471192,
+      "macro_precision": 0.22637056327649294,
+      "macro_recall": 0.22155147932927752,
+      "macro_f1": 0.22303227028187378,
+      "train_seconds": 130.31
+    }
+  },
+  "three_way": {
+    "Naive Bayes": {
+      "accuracy": 0.4198895027624309,
+      "macro_precision": 0.42090542476456294,
+      "macro_recall": 0.3945678998348961,
+      "macro_f1": 0.3790711384073194
+    },
+    "Logistic Regression": {
+      "accuracy": 0.4230465666929755,
+      "macro_precision": 0.4206913202898995,
+      "macro_recall": 0.4241269604455802,
+      "macro_f1": 0.42137476211667413
+    },
+    "Linear SVM": {
+      "accuracy": 0.4183109707971586,
+      "macro_precision": 0.41549427306755465,
+      "macro_recall": 0.41727777289185813,
+      "macro_f1": 0.415942856933558
+    },
+    "Neural Net (MLP)": {
+      "accuracy": 0.40568271507498027,
+      "macro_precision": 0.4006855688140358,
+      "macro_recall": 0.3994595611511271,
+      "macro_f1": 0.39991571748245464
+    }
+  }
+}
